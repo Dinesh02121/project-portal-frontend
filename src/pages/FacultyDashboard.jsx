@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GraduationCap, FolderOpen, Brain, Clock, CheckCircle, XCircle, Users, Menu, X, LogOut, FileText, AlertCircle, ChevronRight, Folder, File, Code, Image as ImageIcon, Download, ArrowLeft, ThumbsUp, ThumbsDown, Percent, Star, TrendingUp, TrendingDown, Award, FileCode, Shield, Zap, BookOpen,FileDown } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-const AI_ANALYSIS_URL = process.env.REACT_APP_AI_SERVICE_URL || 'http://localhost:8000';
+const AI_ANALYSIS_URL = process.env.REACT_APP_AI_SERVICE_URL_REVIEW || 'http://localhost:8000';
 
 // Enhanced AI Analysis Modal Component
 // Enhanced AI Analysis Modal Component with PDF Download
