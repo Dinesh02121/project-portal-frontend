@@ -632,7 +632,7 @@ const CreateProjectModal = ({ isOpen, onClose, onSuccess }) => {
 
 // AI Project Recommendation Component
 const AIProjectRecommendation = ({ studentId, onClose }) => {
- const AI_SERVICE_URL = process.env.REACT_APP_AI_SERVICE_URL || 'http://localhost:8000';
+ const AI_SERVICE_URL = process.env.REACT_APP_AI_SERVICE_URL_RECO || 'http://localhost:8000';
   const [step, setStep] = useState('form');
   const [formData, setFormData] = useState({
     skills: [],
