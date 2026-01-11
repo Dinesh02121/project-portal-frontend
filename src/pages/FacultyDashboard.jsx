@@ -7,14 +7,15 @@ const AI_ANALYSIS_URL = process.env.REACT_APP_AI_SERVICE_URL_REVIEW || 'http://l
 // Enhanced AI Analysis Modal Component
 // Enhanced AI Analysis Modal Component with PDF Download
 const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescription, onClose }) => {
-  const [analyzing, setAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState(null);
-  const [error, setError] = useState('');
+  // ... existing state ...
 
   const runAnalysis = async () => {
     try {
       setAnalyzing(true);
       setError('');
+      
+      // Clean the path - remove double slashes
+      const cleanPath = projectPath.replace(/\/+/g, '/');
       
       const response = await fetch(`${AI_ANALYSIS_URL}/analyze`, {
         method: 'POST',
@@ -22,7 +23,7 @@ const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescripti
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          project_path: projectPath,
+          project_path: cleanPath,  // Use cleaned path
           project_name: projectName,
           student_description: studentDescription
         })
