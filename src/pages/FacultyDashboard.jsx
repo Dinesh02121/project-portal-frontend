@@ -12,36 +12,40 @@ const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescripti
   const [error, setError] = useState('');
 
   const runAnalysis = async () => {
-    try {
-      setAnalyzing(true);
-      setError('');
-      
-    const response = await fetch(`${AI_ANALYSIS_URL}/analyze`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            project_path: projectPath, // This should be the projectZipPath from database
-            project_name: projectName,
-            student_description: studentDescription
-          })
-        });
+  try {
+    setAnalyzing(true);
+    setError('');
+    
+    const token = localStorage.getItem('authToken');
+    
+    const response = await fetch(
+      `${API_BASE_URL}/faculty/dashboard/project/${projectId}/ai-analysis`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
 
-      if (response.ok) {
-        const result = await response.json();
-        setAnalysisResult(result);
-      } else {
-        const errorText = await response.text();
+    if (response.ok) {
+      const result = await response.json();
+      setAnalysisResult(result);
+    } else {
+      const errorText = await response.text();
+      try {
+        const errorJson = JSON.parse(errorText);
+        setError('Analysis failed: ' + (errorJson.error || errorText));
+      } catch {
         setError('Analysis failed: ' + errorText);
       }
-    } catch (err) {
-      setError('Error running analysis: ' + err.message);
-    } finally {
-      setAnalyzing(false);
     }
-  };
-
+  } catch (err) {
+    setError('Error running analysis: ' + err.message);
+  } finally {
+    setAnalyzing(false);
+  }
+};
   useEffect(() => {
     runAnalysis();
   }, []);
