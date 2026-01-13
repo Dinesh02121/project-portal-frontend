@@ -5,7 +5,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 const AI_ANALYSIS_URL = process.env.REACT_APP_AI_SERVICE_URL_REVIEW || 'http://localhost:8000';
 
 // Enhanced AI Analysis Modal Component
-const AIAnalysisModal = ({ projectId, projectName, studentDescription, onClose }) => {
+// Enhanced AI Analysis Modal Component with PDF Download
+const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescription, onClose }) => {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState('');
@@ -15,26 +16,24 @@ const AIAnalysisModal = ({ projectId, projectName, studentDescription, onClose }
       setAnalyzing(true);
       setError('');
       
-      const token = localStorage.getItem('authToken');
-      
-      // Call Java backend which will proxy to Python service
-      const response = await fetch(
-        `${API_BASE_URL}/faculty/dashboard/project/${projectId}/analyze`,
-        {
+    const response = await fetch(`${AI_ANALYSIS_URL}/analyze`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
-          }
-        }
-      );
+          },
+          body: JSON.stringify({
+            project_path: projectPath, // This should be the projectZipPath from database
+            project_name: projectName,
+            student_description: studentDescription
+          })
+        });
 
       if (response.ok) {
         const result = await response.json();
         setAnalysisResult(result);
       } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Analysis failed');
+        const errorText = await response.text();
+        setError('Analysis failed: ' + errorText);
       }
     } catch (err) {
       setError('Error running analysis: ' + err.message);
@@ -1649,4 +1648,4 @@ const FacultyDashboard = () => {
   );
 };
 
-export default FacultyDashboard;
+export default FacultyDashboard
