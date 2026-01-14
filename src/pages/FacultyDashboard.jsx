@@ -4,23 +4,18 @@ import { GraduationCap, FolderOpen, Brain, Clock, CheckCircle, XCircle, Users, M
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 const AI_ANALYSIS_URL = process.env.REACT_APP_AI_SERVICE_URL_REVIEW || 'http://localhost:8000';
 
-// Enhanced AI Analysis Modal Component
-// Enhanced AI Analysis Modal Component with PDF Download
+
 const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescription, onClose }) => {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState('');
 
-  const runAnalysis = async () => {
+   const runAnalysis = async () => {
   try {
     setAnalyzing(true);
     setError('');
     
     const token = localStorage.getItem('authToken');
-    
-    // CHANGE: Backend ko call karo with LONGER timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes timeout
     
     const response = await fetch(
       `${API_BASE_URL}/faculty/dashboard/project/${projectId}/ai-analysis`,
@@ -28,12 +23,9 @@ const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescripti
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
-        },
-        signal: controller.signal
+        }
       }
     );
-
-    clearTimeout(timeoutId);
 
     if (response.ok) {
       const result = await response.json();
@@ -48,11 +40,7 @@ const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescripti
       }
     }
   } catch (err) {
-    if (err.name === 'AbortError') {
-      setError('Analysis is taking longer than expected. The AI service might be waking up. Please try again in 1-2 minutes.');
-    } else {
-      setError('Error running analysis: ' + err.message);
-    }
+    setError('Error running analysis: ' + err.message);
   } finally {
     setAnalyzing(false);
   }
