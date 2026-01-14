@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from 'lucide-react';
 
-
 export default function LoginPage() {
   const hasRedirected = useRef(false);
   const isRedirecting = useRef(false);
@@ -19,26 +18,18 @@ export default function LoginPage() {
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
-
   const redirectBasedOnRole = (role) => {
     if (isRedirecting.current) {
-      console.log('⚠️ Redirect already in progress, skipping');
       return;
     }
     
     isRedirecting.current = true;
     const normalizedRole = String(role).toUpperCase().trim();
-    console.log('🔀 Redirecting based on role:', normalizedRole);
     
     const savedToken = localStorage.getItem('authToken');
     const savedRole = localStorage.getItem('userRole');
     
-    console.log('✅ Pre-redirect verification:');
-    console.log('   Token saved:', !!savedToken);
-    console.log('   Role saved:', savedRole);
-    
     if (!savedToken || !savedRole) {
-      console.error('❌ Token not saved properly! Retrying...');
       localStorage.setItem('authToken', localStorage.getItem('authToken') || savedToken);
       localStorage.setItem('userRole', normalizedRole);
     }
@@ -46,26 +37,21 @@ export default function LoginPage() {
     switch (normalizedRole) {
       case 'ADMIN':
       case 'SYSTEM_ADMIN':
-        console.log('→ Going to /auth/admin/dashboard');
         window.location.href = '/auth/admin/dashboard';
         break;
       case 'COLLEGE_ADMIN':
       case 'COLLEGE':
       case 'COLLEGEADMIN':
-        console.log('→ Going to /auth/college/dashboard');
         window.location.href = '/auth/college/dashboard';
         break;
       case 'FACULTY':
       case 'TEACHER':
-        console.log('→ Going to /auth/faculty/dashboard');
         window.location.href = '/auth/faculty/dashboard';
         break;
       case 'STUDENT':
-        console.log('→ Going to /auth/student/dashboard');
         window.location.href = '/auth/student/dashboard';
         break;
       default:
-        console.error('❌ Unknown role for redirect:', normalizedRole);
         setError(`Unknown role: ${normalizedRole}. Please contact support.`);
         isRedirecting.current = false;
     }
@@ -73,7 +59,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (hasRedirected.current) {
-      console.log('⚠️ Already redirected, skipping auth check');
       return;
     }
     
@@ -81,7 +66,6 @@ export default function LoginPage() {
     const role = localStorage.getItem('userRole');
     
     if (token && role) {
-      console.log('✅ Already logged in, redirecting based on role:', role);
       hasRedirected.current = true;
       redirectBasedOnRole(role);
     }
@@ -89,7 +73,6 @@ export default function LoginPage() {
 
   const handleSubmit = async () => {
     if (isRedirecting.current) {
-      console.log('⚠️ Redirect in progress, ignoring submit');
       return;
     }
 
@@ -105,11 +88,6 @@ export default function LoginPage() {
     const endpoint = loginType === 'admin' ? '/auth/loginAdmin' : '/auth/login';
     
     try {
-      console.log('🔐 LOGIN ATTEMPT STARTED');
-      console.log('📍 Endpoint:', `${API_BASE_URL}${endpoint}`);
-      console.log('📧 Email:', formData.email);
-      console.log('🎭 Login Type:', loginType);
-      
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
@@ -122,17 +100,12 @@ export default function LoginPage() {
         credentials: 'include'
       });
       
-      console.log('📡 Response Status:', response.status);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Error Response Body:', errorText);
         throw new Error(errorText || `Login failed with status ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('✅ LOGIN RESPONSE RECEIVED');
-      console.log('📦 Full Response:', JSON.stringify(data, null, 2));
       
       const token = data.token;
       const role = data.role;
@@ -148,7 +121,6 @@ export default function LoginPage() {
       }
       
       const normalizedRole = String(role).toUpperCase().trim();
-      console.log('Normalized role:', normalizedRole);
       
       localStorage.setItem('authToken', token);
       localStorage.setItem('userRole', normalizedRole);
@@ -162,12 +134,9 @@ export default function LoginPage() {
       setSuccess(message || 'Login successful! Redirecting...');
       
       hasRedirected.current = true;
-      
-      console.log('🚀 INITIATING REDIRECT');
       redirectBasedOnRole(normalizedRole);
         
     } catch (err) {
-      console.error('❌ LOGIN ERROR:', err.message);
       setError(err.message || 'Login failed. Please check your credentials and try again.');
       setLoading(false);
       isRedirecting.current = false;
@@ -220,7 +189,7 @@ export default function LoginPage() {
               Log in to your Account
             </h1>
             <p className="text-gray-500 text-sm">
-              Welcome back! Select method to log in:
+              Welcome back! Please enter your credentials:
             </p>
           </div>
 
@@ -269,39 +238,6 @@ export default function LoginPage() {
               <Lock className="inline-block w-4 h-4 mr-2" />
               Admin Login
             </button>
-          </div>
-
-          {/* Social Login Buttons */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <button 
-              type="button"
-              disabled={loading}
-              className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              <span className="text-sm font-medium text-gray-700">Google</span>
-            </button>
-            <button 
-              type="button"
-              disabled={loading}
-              className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-              <span className="text-sm font-medium text-gray-700">Facebook</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex-1 h-px bg-gray-300"></div>
-            <span className="text-sm text-gray-500">or continue with email</span>
-            <div className="flex-1 h-px bg-gray-300"></div>
           </div>
 
           {/* Login Form */}
