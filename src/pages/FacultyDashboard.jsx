@@ -18,15 +18,22 @@ const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescripti
     
     const token = localStorage.getItem('authToken');
     
+    // CHANGE: Backend ko call karo with LONGER timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes timeout
+    
     const response = await fetch(
       `${API_BASE_URL}/faculty/dashboard/project/${projectId}/ai-analysis`,
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal: controller.signal
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       const result = await response.json();
@@ -41,11 +48,16 @@ const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescripti
       }
     }
   } catch (err) {
-    setError('Error running analysis: ' + err.message);
+    if (err.name === 'AbortError') {
+      setError('Analysis is taking longer than expected. The AI service might be waking up. Please try again in 1-2 minutes.');
+    } else {
+      setError('Error running analysis: ' + err.message);
+    }
   } finally {
     setAnalyzing(false);
   }
 };
+  
   useEffect(() => {
     runAnalysis();
   }, []);
