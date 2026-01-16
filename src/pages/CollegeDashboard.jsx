@@ -3,22 +3,8 @@ import { Building2, Users, GraduationCap, UserCheck, Menu, X, LogOut, Search, Ed
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
-// Auth Token Manager (using in-memory storage)
-const AuthManager = {
-  token: null,
-  
-  setToken: (token) => {
-    AuthManager.token = token;
-  },
-  
-  getToken: () => {
-    return AuthManager.token;
-  },
-  
-  clearToken: () => {
-    AuthManager.token = null;
-  }
-};
+
+
 
 // College Registration Modal
 const CollegeRegistrationModal = ({ isOpen, onClose, onSuccess }) => {
@@ -41,77 +27,74 @@ const CollegeRegistrationModal = ({ isOpen, onClose, onSuccess }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
   };
+const handleSubmit = async () => {
+  setError('');
+  setSuccess('');
 
-  const handleSubmit = async () => {
-    setError('');
-    setSuccess('');
+  if (!formData.collegeName.trim()) {
+    setError('College name is required');
+    return;
+  }
+  if (!formData.officialDomain.trim()) {
+    setError('Official domain is required');
+    return;
+  }
 
-    if (!formData.collegeName.trim()) {
-      setError('College name is required');
-      return;
-    }
-    if (!formData.officialDomain.trim()) {
-      setError('Official domain is required');
-      return;
-    }
+  setLoading(true);
 
-    setLoading(true);
+  try {
+    const response = await fetch(`${API_BASE_URL}/college/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+        // NO Authorization header
+      },
+      credentials: 'include', // Include httpOnly cookie
+      body: JSON.stringify({
+        collegeName: formData.collegeName,
+        officialDomain: formData.officialDomain,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        phone: formData.phone,
+        status: 'PENDING'
+      })
+    });
 
-    try {
-      const token = AuthManager.getToken();
-      
-      if (!token) {
-        setError('Authentication token not found. Please login again.');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/college/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          collegeName: formData.collegeName,
-          officialDomain: formData.officialDomain,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          pincode: formData.pincode,
-          phone: formData.phone,
-          status: 'PENDING'
-        })
+    if (response.ok) {
+      const message = await response.text().catch(() => 'College registered successfully!');
+      setSuccess(message || 'College registered successfully! Status: PENDING (awaiting admin approval)');
+      setFormData({ 
+        collegeName: '', 
+        officialDomain: '', 
+        address: '',
+        city: '',
+        state: '',
+        pincode: '',
+        phone: '',
+        status: 'PENDING' 
       });
-
-      if (response.ok) {
-        const message = await response.text().catch(() => 'College registered successfully!');
-        setSuccess(message || 'College registered successfully! Status: PENDING (awaiting admin approval)');
-        setFormData({ 
-          collegeName: '', 
-          officialDomain: '', 
-          address: '',
-          city: '',
-          state: '',
-          pincode: '',
-          phone: '',
-          status: 'PENDING' 
-        });
-        setTimeout(() => {
-          onSuccess();
-          onClose();
-        }, 2000);
-      } else {
-        const errorText = await response.text().catch(() => 'Failed to register college');
-        setError(errorText || 'Failed to register college. Please check all fields.');
-      }
-    } catch (err) {
-      console.error('Error registering college:', err);
-      setError(`Network error: ${err.message}. Please ensure the backend is running on ${API_BASE_URL} and CORS is enabled.`);
-    } finally {
-      setLoading(false);
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 2000);
+    } else if (response.status === 401) {
+      setError('Authentication failed. Please login again.');
+      setTimeout(() => window.location.href = '/auth/login', 2000);
+    } else {
+      const errorText = await response.text().catch(() => 'Failed to register college');
+      setError(errorText || 'Failed to register college. Please check all fields.');
     }
-  };
+  } catch (err) {
+    console.error('Error registering college:', err);
+    setError(`Network error: ${err.message}. Please ensure the backend is running on ${API_BASE_URL} and CORS is enabled.`);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   if (!isOpen) return null;
 
@@ -306,45 +289,43 @@ const EditProfileModal = ({ isOpen, onClose, onSuccess, profileData }) => {
   };
 
   const handleSubmit = async () => {
-    setError('');
-    setSuccess('');
-    setLoading(true);
+  setError('');
+  setSuccess('');
+  setLoading(true);
 
-    try {
-      const token = AuthManager.getToken();
-      
-      if (!token) {
-        setError('Authentication token not found. Please login again.');
-        setLoading(false);
-        return;
-      }
+  try {
+    const response = await fetch(`${API_BASE_URL}/college/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+    
+      },
+      credentials: 'include', // Include httpOnly cookie
+      body: JSON.stringify(formData)
+    });
 
-      const response = await fetch(`${API_BASE_URL}/college/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        setSuccess('Profile updated successfully!');
-        setTimeout(() => {
-          onSuccess();
-          onClose();
-        }, 1500);
-      } else {
-        const errorText = await response.text().catch(() => 'Failed to update profile');
-        setError(errorText || 'Failed to update profile');
-      }
-    } catch (err) {
-      console.error('Error updating profile:', err);
-      setError(`Network error: ${err.message}. Please check if backend is running.`);
-    } finally {
-      setLoading(false);
+    if (response.ok) {
+      setSuccess('Profile updated successfully!');
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 1500);
+    } else if (response.status === 401) {
+      setError('Authentication failed. Please login again.');
+      setTimeout(() => window.location.href = '/auth/login', 2000);
+    } else {
+      const errorText = await response.text().catch(() => 'Failed to update profile');
+      setError(errorText || 'Failed to update profile');
     }
-  };
+  } catch (err) {
+    console.error('Error updating profile:', err);
+    setError(`Network error: ${err.message}. Please check if backend is running.`);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   if (!isOpen) return null;
 
@@ -518,168 +499,149 @@ const CollegeDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
 
-  // Token setup
-  useEffect(() => {
-    // Get token from localStorage or prompt user to enter it for testing
-    const storedToken = localStorage.getItem('authToken');
-    if (storedToken) {
-      AuthManager.setToken(storedToken);
-    } else {
-      // For testing: You need to replace this with your actual JWT token
-      console.warn('No auth token found in localStorage. Please login or set a token.');
-    }
-  }, []);
 
-  const handleLogout = () => {
-    AuthManager.clearToken();
-    localStorage.removeItem('authToken');
+
+  const handleLogout = async () => {
+  try {
+    // Call backend logout endpoint to clear httpOnly cookie
+    await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+  } catch (err) {
+    console.error('Logout error:', err);
+  } finally {
+    // Clear local storage
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
+    // Redirect to login
     window.location.href = '/auth/login';
-  };
+  }
+};
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
-  const fetchDashboardData = async () => {
+ const fetchDashboardData = async () => {
+  try {
+    setLoading(true);
+    setError('');
+
+    // Fetch profile
     try {
-      setLoading(true);
-      setError('');
-      const token = AuthManager.getToken();
+      const profileResponse = await fetch(`${API_BASE_URL}/college/profile`, {
+        credentials: 'include'
+      });
       
-      if (!token) {
-        setError('Authentication required. Please login.');
-        setLoading(false);
+      if (profileResponse.ok) {
+        const profile = await profileResponse.json();
+        setProfileData(profile);
+      } else if (profileResponse.status === 404) {
+        console.log('No college profile found - user needs to register');
+        setProfileData(null);
+      } else if (profileResponse.status === 401) {
+        setError('Authentication failed. Please login again.');
+        window.location.href = '/auth/login';
         return;
+      } else {
+        console.warn('Profile fetch failed with status:', profileResponse.status);
       }
-
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      };
-
-      // Fetch profile
-      try {
-        const profileResponse = await fetch(`${API_BASE_URL}/college/profile`, {
-          method: 'GET',
-          headers: headers
-        });
-        
-        if (profileResponse.ok) {
-          const profile = await profileResponse.json();
-          setProfileData(profile);
-        } else if (profileResponse.status === 404) {
-          console.log('No college profile found - user needs to register');
-          setProfileData(null);
-        } else if (profileResponse.status === 401) {
-          setError('Authentication failed. Please login again.');
-          return;
-        } else {
-          console.warn('Profile fetch failed with status:', profileResponse.status);
-        }
-      } catch (err) {
-        console.error('Profile fetch error:', err);
-      }
-
-      // Fetch statistics with better error handling
-      try {
-        const statsResponse = await fetch(`${API_BASE_URL}/college/statistics`, {
-          method: 'GET',
-          headers: headers
-        });
-        
-        if (statsResponse.ok) {
-          const stats = await statsResponse.json();
-          // Ensure all expected fields exist
-          setStatistics({
-            totalProjects: stats.totalProjects || 0,
-            pendingApprovals: stats.pendingApprovals || 0,
-            approvedStudents: stats.approvedStudents || 0,
-            approvedFaculty: stats.approvedFaculty || 0
-          });
-        } else {
-          console.warn('Statistics endpoint returned non-OK status:', statsResponse.status);
-          // Keep default statistics
-        }
-      } catch (err) {
-        console.error('Statistics fetch error:', err);
-        // Keep default statistics
-      }
-
-      // Fetch all students
-      try {
-        const studentsResponse = await fetch(`${API_BASE_URL}/college/students`, {
-          method: 'GET',
-          headers: headers
-        });
-        
-        if (studentsResponse.ok) {
-          const studentData = await studentsResponse.json();
-          setStudents(Array.isArray(studentData) ? studentData : []);
-        } else {
-          console.warn('Students endpoint returned status:', studentsResponse.status);
-        }
-      } catch (err) {
-        console.error('Students fetch error:', err);
-        setStudents([]);
-      }
-
-      // Fetch recent students
-      try {
-        const recentStudentsResponse = await fetch(`${API_BASE_URL}/college/students/recent`, {
-          method: 'GET',
-          headers: headers
-        });
-        
-        if (recentStudentsResponse.ok) {
-          const recentStudentData = await recentStudentsResponse.json();
-          setRecentStudents(Array.isArray(recentStudentData) ? recentStudentData : []);
-        }
-      } catch (err) {
-        console.error('Recent students fetch error:', err);
-        setRecentStudents([]);
-      }
-
-      // Fetch all faculties
-      try {
-        const facultiesResponse = await fetch(`${API_BASE_URL}/college/faculty`, {
-          method: 'GET',
-          headers: headers
-        });
-        
-        if (facultiesResponse.ok) {
-          const facultyData = await facultiesResponse.json();
-          setFaculties(Array.isArray(facultyData) ? facultyData : []);
-        }
-      } catch (err) {
-        console.error('Faculties fetch error:', err);
-        setFaculties([]);
-      }
-
-      // Fetch recent faculties
-      try {
-        const recentFacultiesResponse = await fetch(`${API_BASE_URL}/college/faculty/recent`, {
-          method: 'GET',
-          headers: headers
-        });
-        
-        if (recentFacultiesResponse.ok) {
-          const recentFacultyData = await recentFacultiesResponse.json();
-          setRecentFaculties(Array.isArray(recentFacultyData) ? recentFacultyData : []);
-        }
-      } catch (err) {
-        console.error('Recent faculties fetch error:', err);
-        setRecentFaculties([]);
-      }
-
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setError(`Failed to connect to backend at ${API_BASE_URL}. Error: ${error.message}`);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error('Profile fetch error:', err);
     }
-  };
+
+    // Fetch statistics
+    try {
+      const statsResponse = await fetch(`${API_BASE_URL}/college/statistics`, {
+        credentials: 'include'
+      });
+      
+      if (statsResponse.ok) {
+        const stats = await statsResponse.json();
+        setStatistics({
+          totalProjects: stats.totalProjects || 0,
+          pendingApprovals: stats.pendingApprovals || 0,
+          approvedStudents: stats.approvedStudents || 0,
+          approvedFaculty: stats.approvedFaculty || 0
+        });
+      } else {
+        console.warn('Statistics endpoint returned non-OK status:', statsResponse.status);
+      }
+    } catch (err) {
+      console.error('Statistics fetch error:', err);
+    }
+
+    // Fetch all students
+    try {
+      const studentsResponse = await fetch(`${API_BASE_URL}/college/students`, {
+        credentials: 'include'
+      });
+      
+      if (studentsResponse.ok) {
+        const studentData = await studentsResponse.json();
+        setStudents(Array.isArray(studentData) ? studentData : []);
+      } else {
+        console.warn('Students endpoint returned status:', studentsResponse.status);
+      }
+    } catch (err) {
+      console.error('Students fetch error:', err);
+      setStudents([]);
+    }
+
+    // Fetch recent students
+    try {
+      const recentStudentsResponse = await fetch(`${API_BASE_URL}/college/students/recent`, {
+        credentials: 'include'
+      });
+      
+      if (recentStudentsResponse.ok) {
+        const recentStudentData = await recentStudentsResponse.json();
+        setRecentStudents(Array.isArray(recentStudentData) ? recentStudentData : []);
+      }
+    } catch (err) {
+      console.error('Recent students fetch error:', err);
+      setRecentStudents([]);
+    }
+
+    // Fetch all faculties
+    try {
+      const facultiesResponse = await fetch(`${API_BASE_URL}/college/faculty`, {
+        credentials: 'include'
+      });
+      
+      if (facultiesResponse.ok) {
+        const facultyData = await facultiesResponse.json();
+        setFaculties(Array.isArray(facultyData) ? facultyData : []);
+      }
+    } catch (err) {
+      console.error('Faculties fetch error:', err);
+      setFaculties([]);
+    }
+
+    // Fetch recent faculties
+    try {
+      const recentFacultiesResponse = await fetch(`${API_BASE_URL}/college/faculty/recent`, {
+        credentials: 'include'
+      });
+      
+      if (recentFacultiesResponse.ok) {
+        const recentFacultyData = await recentFacultiesResponse.json();
+        setRecentFaculties(Array.isArray(recentFacultyData) ? recentFacultyData : []);
+      }
+    } catch (err) {
+      console.error('Recent faculties fetch error:', err);
+      setRecentFaculties([]);
+    }
+
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+    setError(`Failed to connect to backend at ${API_BASE_URL}. Error: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const filteredStudents = students.filter(student =>
     student.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||

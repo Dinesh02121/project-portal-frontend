@@ -21,55 +21,64 @@ const AdminDashboard = () => {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Check authentication on mount
-  useEffect(() => {
-  const token = localStorage.getItem('authToken');
-  if (!token) {
-    showNotification('No authentication token found. Please login first.', 'error');
-    setTimeout(() => {
-      window.location.href = '/auth/login';
-    }, 2000);
-  } else {
-    setAuthChecked(true);
+
+ useEffect(() => {
+    const verifyAuth = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/verify`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.role === 'ADMIN' || data.role === 'SYSTEM_ADMIN') {
+            setAuthChecked(true);
+          } else {
+            showNotification('Unauthorized. Admin access required.', 'error');
+            setTimeout(() => window.location.href = '/auth/login', 2000);
+          }
+        } else {
+          showNotification('Authentication required. Please login.', 'error');
+          setTimeout(() => window.location.href = '/auth/login', 2000);
+        }
+      } catch (err) {
+        console.error('Auth verification error:', err);
+        showNotification('Authentication check failed.', 'error');
+        setTimeout(() => window.location.href = '/auth/login', 2000);
+      }
+    };
+    
+    verifyAuth();
+  }, []);
+
+
+ const handleLogout = async () => {
+  try {
+    await fetch(`${process.env.REACT_APP_API_URL}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+  } catch (err) {
+    console.error('Logout error:', err);
+  } finally {
+    // Removed localStorage lines since auth is cookie-based
+    window.location.href = '/auth/login';
   }
-}, []);
-
-
-  // Logout function
-  const handleLogout = () => {
-  localStorage.removeItem('authToken'); 
-  localStorage.removeItem('userRole');
-  localStorage.removeItem('user'); 
-  window.location.href = '/auth/login'; 
 };
 
-  const fetchWithAuth = async (url, options = {}) => {
-  const token = localStorage.getItem('authToken');
-  
-  console.log('Fetch Request:', url);
-  console.log('Token available:', !!token);
-  
-  if (!token) {
-    const error = new Error('No authentication token found. Please login.');
-    console.error(error.message);
-    showNotification(error.message, 'error');
-    setTimeout(() => handleLogout(), 1500);
-    throw error;
-  }
-
+const fetchWithAuth = async (url, options = {}) => {
   try {
     const response = await fetch(url, {
       ...options,
+      credentials: 'include',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         ...options.headers,
       },
     });
 
-
     if (response.status === 401 || response.status === 403) {
-      showNotification('Session expired or unauthorized. Please login again.', 'error');
+      showNotification('Session expired. Please login again.', 'error');
       setTimeout(() => handleLogout(), 1500);
       throw new Error('Authentication failed');
     }
@@ -80,13 +89,13 @@ const AdminDashboard = () => {
     }
 
     const contentType = response.headers.get('content-type');
+    
+    // Return text for non-JSON responses
     if (!contentType || !contentType.includes('application/json')) {
-      const text = await response.text();
-      throw new Error('Server returned non-JSON response.');
+      return await response.text();
     }
 
-    const data = await response.json();
-    return data;
+    return await response.json();
     
   } catch (error) {
     throw error;
@@ -94,12 +103,10 @@ const AdminDashboard = () => {
 };
 
 
+
   // Fetch all students
   const fetchAllStudents = async () => {
-    if (!authChecked) {
-      return;
-    }
-    
+    if (!authChecked) return;
     setLoading(true);
     try {
       const data = await fetchWithAuth(`${API_BASE}/student`);
@@ -112,15 +119,12 @@ const AdminDashboard = () => {
     }
   };
 
+
   // Fetch all faculty
   const fetchAllFaculty = async () => {
-    if (!authChecked) {
-      return;
-    }
-    
+    if (!authChecked) return;
     setLoading(true);
     try {
-
       const data = await fetchWithAuth(`${API_BASE}/faculty`);
       setFaculty(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -134,13 +138,11 @@ const AdminDashboard = () => {
   // Fetch students by college
   const fetchStudentsByCollege = async (collegeName) => {
     if (!authChecked) return;
-    
     setLoading(true);
     try {
       const data = await fetchWithAuth(`${API_BASE}/studentData/${encodeURIComponent(collegeName)}`);
       setStudents(Array.isArray(data) ? data : []);
     } catch (error) {
-  
       showNotification(error.message || 'Error fetching college students', 'error');
       setStudents([]);
     } finally {
@@ -148,16 +150,14 @@ const AdminDashboard = () => {
     }
   };
 
+
   // Fetch faculty by college
-  const fetchFacultyByCollege = async (collegeName) => {
+ const fetchFacultyByCollege = async (collegeName) => {
     if (!authChecked) return;
-    
     setLoading(true);
     try {
-    
       const data = await fetchWithAuth(`${API_BASE}/facultyData/${encodeURIComponent(collegeName)}`);
       setFaculty(Array.isArray(data) ? data : []);
-    
     } catch (error) {
       showNotification(error.message || 'Error fetching college faculty', 'error');
       setFaculty([]);
@@ -168,10 +168,7 @@ const AdminDashboard = () => {
 
   // Fetch all colleges
   const fetchAllColleges = async () => {
-    if (!authChecked) {
-      return;
-    }
-    
+    if (!authChecked) return;
     setLoading(true);
     try {
       const data = await fetchWithAuth(`${API_BASE}/colleges`);
@@ -189,37 +186,12 @@ const AdminDashboard = () => {
 const updateCollegeStatus = async (collegeName, status) => {
   setLoading(true);
   try {
-    const token = localStorage.getItem('authToken');
-    
-    if (!token) {
-      showNotification('No authentication token found. Please login.', 'error');
-      setTimeout(() => handleLogout(), 1500);
-      return;
-    }
-
-  
-    const response = await fetch(`${API_BASE}/approve/${encodeURIComponent(collegeName)}`, {
+    await fetchWithAuth(`${API_BASE}/approve/${encodeURIComponent(collegeName)}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
       body: `"${status}"`,
     });
-
-    if (response.status === 401 || response.status === 403) {
-      showNotification('Session expired. Please login again.', 'error');
-      setTimeout(() => handleLogout(), 1500);
-      return;
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Failed to update college status');
-    }
-
-    const message = await response.text();
-    showNotification(message || 'College status updated successfully', 'success');
+    
+    showNotification('College status updated successfully', 'success');
     await fetchAllColleges();
   } catch (error) {
     showNotification(error.message || 'Error updating college status', 'error');
@@ -227,6 +199,7 @@ const updateCollegeStatus = async (collegeName, status) => {
     setLoading(false);
   }
 };
+
   const handleCollegeSelect = (college) => {
     setSelectedCollege(college);
     setActiveView('overview');
@@ -239,7 +212,6 @@ const updateCollegeStatus = async (collegeName, status) => {
     }
   };
 
-  // Refresh all data
   const refreshData = () => {
     fetchAllColleges();
     if (selectedCollege) {
@@ -258,29 +230,21 @@ const updateCollegeStatus = async (collegeName, status) => {
         await fetchAllStudents();
         await fetchAllFaculty();
       };
-      
       loadInitialData();
     }
   }, [authChecked]);
 
   const getInitials = (name) => {
     if (!name) return '??';
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  // Filter colleges based on search and status
   const filteredColleges = colleges.filter(college => {
     const matchesSearch = college.collegeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          college.officialDomain?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || college.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
   const StatCard = ({ icon: Icon, count, label, subtitle, bgColor, trend }) => (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-4">
