@@ -22,35 +22,41 @@ const AdminDashboard = () => {
   };
 
 
- useEffect(() => {
-    const verifyAuth = async () => {
-      try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/verify`, {
-          credentials: 'include'
-        });
+useEffect(() => {
+  const verifyAuth = async () => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/verify`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const normalizedRole = String(data.role).toUpperCase().trim();
         
-        if (response.ok) {
-          const data = await response.json();
-          if (data.role === 'ADMIN' || data.role === 'SYSTEM_ADMIN') {
-            setAuthChecked(true);
-          } else {
-            showNotification('Unauthorized. Admin access required.', 'error');
-            setTimeout(() => window.location.href = '/auth/login', 2000);
-          }
+        if (normalizedRole === 'ADMIN' || normalizedRole === 'SYSTEM_ADMIN') {
+          setAuthChecked(true);
         } else {
-          showNotification('Authentication required. Please login.', 'error');
-          setTimeout(() => window.location.href = '/auth/login', 2000);
+          showNotification('Unauthorized. Admin access required.', 'error');
+          setTimeout(() => {
+            window.location.href = '/auth/login';
+          }, 2000);
         }
-      } catch (err) {
-        console.error('Auth verification error:', err);
-        showNotification('Authentication check failed.', 'error');
-        setTimeout(() => window.location.href = '/auth/login', 2000);
+      } else {
+        
+        setTimeout(() => {
+          window.location.href = '/auth/login';
+        }, 500);
       }
-    };
-    
-    verifyAuth();
-  }, []);
-
+    } catch (err) {
+      console.error('Auth verification error:', err);
+      setTimeout(() => {
+        window.location.href = '/auth/login';
+      }, 500);
+    }
+  };
+  
+  verifyAuth();
+}, []); 
 
  const handleLogout = async () => {
   try {

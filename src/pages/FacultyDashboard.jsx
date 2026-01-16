@@ -1311,6 +1311,7 @@ useEffect(() => {
       });
       
       if (!response.ok) {
+        // Redirect to login without showing error
         window.location.href = '/auth/login';
         return;
       }
@@ -1324,8 +1325,10 @@ useEffect(() => {
         return;
       }
       
+     
       localStorage.setItem('userRole', normalizedRole);
       
+      // Now fetch dashboard data
       fetchDashboardData();
     } catch (err) {
       console.error('Auth verification error:', err);
@@ -1335,7 +1338,7 @@ useEffect(() => {
   
   verifyAuth();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []); 
+}, []);  
 
   const fetchDashboardData = async () => {
   try {
@@ -1347,11 +1350,11 @@ useEffect(() => {
     const profileResponse = await fetch(`${API_BASE_URL}/faculty/dashboard/profile`, {
       method: 'GET',
       headers: headers,
-      credentials: 'include' // Changed: Use credentials instead of Authorization header
+      credentials: 'include'
     });
 
-     if (profileResponse.status === 401) {
-      handleLogout();
+    if (profileResponse.status === 401) {
+      window.location.href = '/auth/login';
       return;
     }
 
@@ -1368,11 +1371,11 @@ useEffect(() => {
     const summaryResponse = await fetch(`${API_BASE_URL}/faculty/dashboard/summary`, {
       method: 'GET',
       headers: headers,
-      credentials: 'include' // Changed: Use credentials instead of Authorization header
+      credentials: 'include'
     });
      
-     if (summaryResponse.status === 401) {
-      handleLogout();
+    if (summaryResponse.status === 401) {
+      window.location.href = '/auth/login';
       return;
     }
 
@@ -1385,9 +1388,6 @@ useEffect(() => {
 
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
-    if (error.message?.includes('401')) {
-      handleLogout();
-    }
   } finally {
     setLoading(false);
   }

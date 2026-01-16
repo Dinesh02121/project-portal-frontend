@@ -1011,67 +1011,102 @@ const StudentDashboard = () => {
     }
   };
 
-    useEffect(() => {
-    fetchDashboardData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchDashboardData = useCallback(async () => {
+   useEffect(() => {
+  const verifyAuth = async () => {
     try {
-      setLoading(true);
-
-      const profileResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/profile`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
         credentials: 'include'
       });
-
-      if (profileResponse.ok) {
-        const profile = await profileResponse.json();
-        setStudentData({
-          studentId: profile.studentId,
-          name: profile.studentName || 'Student',
-          email: profile.email || '',
-          college: profile.collegeName || 'College',
-          initials: getInitials(profile.studentName || 'Student')
-        });
-      } else if (profileResponse.status === 401) {
+      
+      if (!response.ok) {
+        // Redirect to login
         window.location.href = '/auth/login';
         return;
       }
-
-      const summaryResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/summary`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
-
-      if (summaryResponse.ok) {
-        const summary = await summaryResponse.json();
-        setDashboardSummary(summary);
+      
+      const data = await response.json();
+      const normalizedRole = String(data.role).toUpperCase().trim();
+      
+      if (normalizedRole !== 'STUDENT') {
+        alert('Unauthorized access. Student role required.');
+        window.location.href = '/auth/login';
+        return;
       }
-
-      const projectsResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/recent-projects`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
-
-      if (projectsResponse.ok) {
-        const projects = await projectsResponse.json();
-        setRecentProjects(projects);
-      }
-
-      if (activeTab === 'projects') {
-        await fetchAllProjects();
-      }
-
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
+      
+      // Store role
+      localStorage.setItem('userRole', normalizedRole);
+      
+      // Now fetch dashboard data
+      fetchDashboardData();
+    } catch (err) {
+      console.error('Auth verification error:', err);
+      window.location.href = '/auth/login';
     }
-  }, [activeTab]);
+  };
+  
+  verifyAuth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
+
+const fetchDashboardData = useCallback(async () => {
+  try {
+    setLoading(true);
+
+    const profileResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/profile`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    });
+
+    if (profileResponse.status === 401) {
+      window.location.href = '/auth/login';
+      return;
+    }
+
+    if (profileResponse.ok) {
+      const profile = await profileResponse.json();
+      setStudentData({
+        studentId: profile.studentId,
+        name: profile.studentName || 'Student',
+        email: profile.email || '',
+        college: profile.collegeName || 'College',
+        initials: getInitials(profile.studentName || 'Student')
+      });
+    }
+
+    const summaryResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/summary`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    });
+
+    if (summaryResponse.ok) {
+      const summary = await summaryResponse.json();
+      setDashboardSummary(summary);
+    }
+
+    const projectsResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/recent-projects`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    });
+
+    if (projectsResponse.ok) {
+      const projects = await projectsResponse.json();
+      setRecentProjects(projects);
+    }
+
+    if (activeTab === 'projects') {
+      await fetchAllProjects();
+    }
+
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+  } finally {
+    setLoading(false);
+  }
+}, [activeTab]);
 
   const fetchAllProjects = async () => {
     try {

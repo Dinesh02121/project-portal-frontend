@@ -528,7 +528,27 @@ const CollegeDashboard = () => {
     setLoading(true);
     setError('');
 
-    // Fetch profile
+    // First verify authentication
+    const authResponse = await fetch(`${API_BASE_URL}/auth/verify`, {
+      credentials: 'include'
+    });
+
+    if (!authResponse.ok) {
+      // Redirect to login if not authenticated
+      window.location.href = '/auth/login';
+      return;
+    }
+
+    const authData = await authResponse.json();
+    const normalizedRole = String(authData.role).toUpperCase().trim();
+
+    if (normalizedRole !== 'COLLEGE' && normalizedRole !== 'COLLEGE_ADMIN') {
+      alert('Unauthorized access. College admin role required.');
+      window.location.href = '/auth/login';
+      return;
+    }
+
+    // Now fetch profile
     try {
       const profileResponse = await fetch(`${API_BASE_URL}/college/profile`, {
         credentials: 'include'
@@ -540,12 +560,6 @@ const CollegeDashboard = () => {
       } else if (profileResponse.status === 404) {
         console.log('No college profile found - user needs to register');
         setProfileData(null);
-      } else if (profileResponse.status === 401) {
-        setError('Authentication failed. Please login again.');
-        window.location.href = '/auth/login';
-        return;
-      } else {
-        console.warn('Profile fetch failed with status:', profileResponse.status);
       }
     } catch (err) {
       console.error('Profile fetch error:', err);
@@ -565,8 +579,6 @@ const CollegeDashboard = () => {
           approvedStudents: stats.approvedStudents || 0,
           approvedFaculty: stats.approvedFaculty || 0
         });
-      } else {
-        console.warn('Statistics endpoint returned non-OK status:', statsResponse.status);
       }
     } catch (err) {
       console.error('Statistics fetch error:', err);
@@ -581,8 +593,6 @@ const CollegeDashboard = () => {
       if (studentsResponse.ok) {
         const studentData = await studentsResponse.json();
         setStudents(Array.isArray(studentData) ? studentData : []);
-      } else {
-        console.warn('Students endpoint returned status:', studentsResponse.status);
       }
     } catch (err) {
       console.error('Students fetch error:', err);
@@ -636,7 +646,7 @@ const CollegeDashboard = () => {
 
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
-    setError(`Failed to connect to backend at ${API_BASE_URL}. Error: ${error.message}`);
+    setError(`Failed to connect to backend. Error: ${error.message}`);
   } finally {
     setLoading(false);
   }
