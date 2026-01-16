@@ -130,7 +130,7 @@ const PrivateRoute = ({ children, allowedRoles }) => {
     );
   }
 
-  
+  // Render protected content if authenticated and authorized
   return children;
 };
 

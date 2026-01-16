@@ -8,7 +8,7 @@ import RegistrationPage from './pages/RegistrationPage';
 import AdminDashboard from './pages/AdminDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
 import PrivateRoute from './components/PrivateRoute';
-import DashboardRedirect from './components/DashboardRedirect';
+
 
 import './App.css';
 
@@ -23,12 +23,9 @@ function App() {
         <Route path="/auth/register" element={<RegistrationPage />} />
         <Route path="/auth/registration/student" element={<RegistrationPage />} />
         
-        {/* Dashboard Redirect - handles role-based routing after login */}
-        <Route path="/dashboard" element={<DashboardRedirect />} />
-        
         {/* Protected Routes - Student */}
         <Route 
-          path="/student/dashboard" 
+          path="/auth/student/dashboard" 
           element={
             <PrivateRoute allowedRoles={['STUDENT']}>
               <StudentDashboard />
@@ -36,47 +33,50 @@ function App() {
           } 
         />
         
-        {/* Protected Routes - Faculty */}
-        <Route 
-          path="/faculty/dashboard" 
-          element={
-            <PrivateRoute allowedRoles={['FACULTY', 'TEACHER']}>
-              <FacultyDashboard />
-            </PrivateRoute>
-          } 
-        />
-        
         {/* Protected Routes - College Admin */}
         <Route 
-          path="/college/dashboard" 
+          path="/auth/college/dashboard" 
           element={
             <PrivateRoute allowedRoles={['COLLEGE', 'COLLEGE_ADMIN']}>
               <CollegeDashboard />
             </PrivateRoute>
           } 
         />
-        
-        {/* Protected Routes - System Admin */}
         <Route 
-          path="/admin/dashboard" 
+            path="/auth/admin/dashboard" 
+            element={
+              <PrivateRoute allowedRoles={['ADMIN']}>
+                <AdminDashboard />
+              </PrivateRoute>
+            } 
+          />
+
+        
+       
+        <Route 
+          path="/auth/faculty/dashboard" 
           element={
-            <PrivateRoute allowedRoles={['ADMIN', 'SYSTEM_ADMIN']}>
-              <AdminDashboard />
+            <PrivateRoute allowedRoles={['FACULTY']}>
+              <FacultyDashboard />
             </PrivateRoute>
           } 
         />
         
-        {/* Legacy routes - redirect to new paths for backward compatibility */}
-        <Route path="/auth/student/dashboard" element={<Navigate to="/student/dashboard" replace />} />
-        <Route path="/auth/faculty/dashboard" element={<Navigate to="/faculty/dashboard" replace />} />
-        <Route path="/auth/college/dashboard" element={<Navigate to="/college/dashboard" replace />} />
-        <Route path="/auth/admin/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+        {/* Protected Routes - Admin (if you have it) */}
+        {/* <Route 
+          path="/auth/admin/dashboard" 
+          element={
+            <PrivateRoute allowedRoles={['ADMIN']}>
+              <AdminDashboard />
+            </PrivateRoute>
+          } 
+        /> */}
         
-        {/* Default Route - redirect to dashboard (which will handle role-based routing) */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* Default Route */}
+        <Route path="/" element={<Navigate to="/auth/login" replace />} />
         
-        {/* Catch all - redirect to dashboard */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Catch all - redirect to login */}
+        <Route path="*" element={<Navigate to="/auth/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
