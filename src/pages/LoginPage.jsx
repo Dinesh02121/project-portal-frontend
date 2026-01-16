@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
@@ -16,37 +16,9 @@ export default function LoginPage() {
     password: ''
   });
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+  const API_BASE_URL = 'http://localhost:8080';
 
-  // Verify authentication on mount
-  useEffect(() => {
-    if (hasRedirected.current) {
-      console.log('⚠️ Already redirected, skipping auth check');
-      return;
-    }
-    
-    verifyAuth();
-  }, []);
-
-  const verifyAuth = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-        method: 'GET',
-        credentials: 'include' // Important: include cookies
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Already authenticated:', data);
-        hasRedirected.current = true;
-        redirectBasedOnRole(data.role);
-      }
-    } catch (err) {
-      console.log('Not authenticated or error:', err);
-    }
-  };
-
-  const redirectBasedOnRole = (role) => {
+  const redirectBasedOnRole = useCallback((role) => {
     if (isRedirecting.current) {
       console.log('⚠️ Redirect already in progress, skipping');
       return;
@@ -85,7 +57,35 @@ export default function LoginPage() {
         setError(`Unknown role: ${normalizedRole}. Please contact support.`);
         isRedirecting.current = false;
     }
-  };
+  }, [setError]);
+
+  const verifyAuth = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+        method: 'GET',
+        credentials: 'include' // Important: include cookies
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Already authenticated:', data);
+        hasRedirected.current = true;
+        redirectBasedOnRole(data.role);
+      }
+    } catch (err) {
+      console.log('Not authenticated or error:', err);
+    }
+  }, [redirectBasedOnRole]);
+
+  // Verify authentication on mount
+  useEffect(() => {
+    if (hasRedirected.current) {
+      console.log('⚠️ Already redirected, skipping auth check');
+      return;
+    }
+    
+    verifyAuth();
+  }, [verifyAuth]);
 
   const handleSubmit = async () => {
     if (isRedirecting.current) {

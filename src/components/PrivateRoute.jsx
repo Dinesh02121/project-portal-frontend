@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
 const PrivateRoute = ({ children, allowedRoles }) => {
@@ -11,11 +11,12 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   
   const API_BASE_URL = 'http://localhost:8080';
 
-  useEffect(() => {
-    verifyAuthentication();
+  const clearAuthState = useCallback(() => {
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('user');
   }, []);
 
-  const verifyAuthentication = async () => {
+  const verifyAuthentication = useCallback(async () => {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🔒 PRIVATE ROUTE - VERIFYING AUTH');
     console.log('📍 Current Path:', location.pathname);
@@ -63,12 +64,11 @@ const PrivateRoute = ({ children, allowedRoles }) => {
     }
     
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  };
+  }, [clearAuthState]);
 
-  const clearAuthState = () => {
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('user');
-  };
+  useEffect(() => {
+    verifyAuthentication();
+  }, [verifyAuthentication]);
 
   // Show loading state
   if (authState.loading) {
