@@ -1,4 +1,4 @@
-import React, { useState, useEffect,useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, Building, AlertCircle, ArrowLeft, GraduationCap, Users, Shield } from 'lucide-react';
 
 // Main Registration Hub Component
@@ -100,28 +100,27 @@ function StudentRegistration({ onBack }) {
   
 const API_BASE_URL = process.env.REACT_APP_API_URL ;
 
-
- 
-const fetchColleges = useCallback(async () => {
-  try {
-    setLoadingColleges(true);
-    const response = await fetch(`${API_BASE_URL}/college/all`);
-    if (response.ok) {
-      const data = await response.json();
-      setColleges(data);
-    } else {
-      console.error('Failed to fetch colleges');
-    }
-  } catch (error) {
-    console.error('Error fetching colleges:', error);
-  } finally {
-    setLoadingColleges(false);
-  }
-}, [API_BASE_URL]);
-
+  // Fetch approved colleges on component mount
   useEffect(() => {
     fetchColleges();
-  }, [fetchColleges]);
+  }, []);
+
+  const fetchColleges = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/colleges`);
+      if (response.ok) {
+        const data = await response.json();
+        setColleges(data);
+      } else {
+        setError('Failed to load colleges. Please try again later.');
+      }
+    } catch (err) {
+      console.error('Error fetching colleges:', err);
+      setError('Failed to load colleges. Please check your connection.');
+    } finally {
+      setLoadingColleges(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -506,26 +505,22 @@ function FacultyRegistration({ onBack }) {
 
   const API_BASE_URL =  process.env.REACT_APP_API_URL;
 
-  
-
-  const fetchColleges = useCallback(async () => {
-  try {
-   
-    const response = await fetch(`${API_BASE_URL}/college/all`);
-    if (response.ok) {
-      const data = await response.json();
-      setColleges(data);
-    } else {
-      console.error('Failed to fetch colleges');
-    }
-    } catch (error) {
-      console.error('Error fetching colleges:', error);
-    } 
-  }, [API_BASE_URL]);
-
   useEffect(() => {
     fetchColleges();
-  }, [fetchColleges]);
+  }, []);
+
+  const fetchColleges = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/colleges`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch colleges');
+      }
+      const data = await response.json();
+      setColleges(data);
+    } catch (err) {
+      console.error('Error fetching colleges:', err);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();

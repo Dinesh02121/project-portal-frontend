@@ -1,7 +1,8 @@
-import React, { useState, useEffect,useCallback } from 'react';
-import { GraduationCap, FolderOpen, Brain, Clock, CheckCircle, XCircle, Menu, X, LogOut, FileText, AlertCircle, ChevronRight, Folder, File, Code, Image as ImageIcon, Download, ArrowLeft, ThumbsUp, ThumbsDown, Percent, Star, TrendingUp, TrendingDown, Award, FileCode, Shield, Zap, BookOpen,FileDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { GraduationCap, FolderOpen, Brain, Clock, CheckCircle, XCircle, Users, Menu, X, LogOut, FileText, AlertCircle, ChevronRight, Folder, File, Code, Image as ImageIcon, Download, ArrowLeft, ThumbsUp, ThumbsDown, Percent, Star, TrendingUp, TrendingDown, Award, FileCode, Shield, Zap, BookOpen,FileDown } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const AI_ANALYSIS_URL = process.env.REACT_APP_AI_SERVICE_URL_REVIEW || 'http://localhost:8000';
 
 
 const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescription, onClose }) => {
@@ -9,21 +10,22 @@ const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescripti
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState('');
 
- 
-  const runAnalysis = useCallback(async () => {
+   const runAnalysis = async () => {
   try {
     setAnalyzing(true);
     setError('');
+    
+    const token = localStorage.getItem('authToken');
     
     const response = await fetch(
       `${API_BASE_URL}/faculty/dashboard/project/${projectId}/ai-analysis`,
       {
         method: 'POST',
-        credentials: 'include' // Changed: Use credentials instead of Authorization header
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       }
     );
-
-    
 
     if (response.ok) {
       const result = await response.json();
@@ -42,11 +44,11 @@ const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescripti
   } finally {
     setAnalyzing(false);
   }
-}, [projectId]);
+};
   
   useEffect(() => {
     runAnalysis();
-  }, [runAnalysis]);
+  }, []);
 
   const getGradeColor = (grade) => {
     if (grade.startsWith('A')) return 'text-green-600 bg-green-50';
@@ -718,24 +720,23 @@ const FacultyFileViewer = ({ projectId, onBack, onStatusUpdate }) => {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [projectDetails, setProjectDetails] = useState(null);
 
-  
+  useEffect(() => {
+    fetchFiles(currentPath);
+    setSelectedFile(null);
+    setFileContent('');
+  }, [currentPath, projectId]);
 
-    const fetchFiles = useCallback(async (path) => {
+  const fetchFiles = async (path) => {
     try {
       setLoading(true);
       setError('');
+      const token = localStorage.getItem('authToken');
       
       const url = `${API_BASE_URL}/faculty/dashboard/project/${projectId}/files${path ? `?path=${encodeURIComponent(path)}` : ''}`;
       
       const response = await fetch(url, {
-        credentials: 'include' // Changed: Use credentials instead of Authorization header
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
-       if (response.status === 401) {
-      alert('Session expired. Please login again.');
-      window.location.href = '/auth/login';
-        return;
-      }
 
       if (response.ok) {
         const data = await response.json();
@@ -750,55 +751,37 @@ const FacultyFileViewer = ({ projectId, onBack, onStatusUpdate }) => {
     } finally {
       setLoading(false);
     }
-  },[projectId]);
+  };
 
-   useEffect(() => {
-    fetchFiles(currentPath);
-    setSelectedFile(null);
-    setFileContent('');
-  }, [currentPath, projectId,fetchFiles]);
-
-  const fetchProjectDetails = useCallback(async () => {
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/faculty/dashboard/project/${projectId}/details`,
-      { credentials: 'include' }
-    );
-
-    if (response.status === 401) {
-      alert('Session expired. Please login again.');
-      window.location.href = '/auth/login';
-      return;
+  const fetchProjectDetails = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `${API_BASE_URL}/faculty/dashboard/project/${projectId}/details`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setProjectDetails(data);
+      }
+    } catch (err) {
+      console.error('Error fetching project details:', err);
     }
+  };
 
-    if (response.ok) {
-      const data = await response.json();
-      setProjectDetails(data);
-    }
-  } catch (err) {
-    console.error('Error fetching project details:', err);
-  }
-}, [projectId]);
-
-useEffect(() => {
-  fetchProjectDetails();
-}, [fetchProjectDetails]);
-
+  useEffect(() => {
+    fetchProjectDetails();
+  }, [projectId]);
 
   const fetchFileContent = async (filePath) => {
     try {
       setLoadingContent(true);
+      const token = localStorage.getItem('authToken');
       
       const response = await fetch(
         `${API_BASE_URL}/faculty/dashboard/project/${projectId}/file/content?path=${encodeURIComponent(filePath)}`,
-        { credentials: 'include' } // Changed: Use credentials instead of Authorization header
+        { headers: { 'Authorization': `Bearer ${token}` } }
       );
-
-       if (response.status === 401) {
-      alert('Session expired. Please login again.');
-      window.location.href = '/auth/login';
-      return;
-      }
 
       if (response.ok) {
         const content = await response.text();
@@ -815,58 +798,59 @@ useEffect(() => {
   };
 
   const handleDownload = async () => {
-  if (!selectedFile) {
-    setError('No file selected');
-    return;
-  }
-  
-  const isDir = selectedFile.isDirectory === true || selectedFile.directory === true;
-  
-  if (isDir) {
-    setError('Cannot download folders. Please select a file instead.');
-    setSelectedFile(null);
-    return;
-  }
-  
-  try {
-    setDownloading(true);
-    setError('');
-    
-    const response = await fetch(
-      `${API_BASE_URL}/faculty/dashboard/project/${projectId}/file/download?path=${encodeURIComponent(selectedFile.path)}`,
-      {
-        method: 'GET',
-        credentials: 'include' // Changed: Use credentials instead of Authorization header
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Download failed');
+    if (!selectedFile) {
+      setError('No file selected');
+      return;
     }
+    
+    const isDir = selectedFile.isDirectory === true || selectedFile.directory === true;
+    
+    if (isDir) {
+      setError('Cannot download folders. Please select a file instead.');
+      setSelectedFile(null);
+      return;
+    }
+    
+    try {
+      setDownloading(true);
+      setError('');
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(
+        `${API_BASE_URL}/faculty/dashboard/project/${projectId}/file/download?path=${encodeURIComponent(selectedFile.path)}`,
+        {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
 
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = selectedFile.name;
-    
-    document.body.appendChild(a);
-    a.click();
-    
-    setTimeout(() => {
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    }, 100);
-    
-  } catch (err) {
-    const errorMessage = err.message.replace('Error: ', '');
-    setError(`Failed to download: ${errorMessage}`);
-  } finally {
-    setDownloading(false);
-  }
-};
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Download failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = selectedFile.name;
+      
+      document.body.appendChild(a);
+      a.click();
+      
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+      
+    } catch (err) {
+      const errorMessage = err.message.replace('Error: ', '');
+      setError(`Failed to download: ${errorMessage}`);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const handleFileClick = (file) => {
     const isDir = Boolean(file.isDirectory || file.directory);
@@ -907,15 +891,16 @@ useEffect(() => {
     setShowDecisionModal(true);
   };
 
-    const submitDecision = async () => {
+  const submitDecision = async () => {
     try {
       setSubmitting(true);
+      const token = localStorage.getItem('authToken');
       
       const response = await fetch(
         `${API_BASE_URL}/faculty/dashboard/project/${projectId}/decision?accept=${decision}`,
         {
           method: 'PUT',
-          credentials: 'include' // Changed: Use credentials instead of Authorization header
+          headers: { 'Authorization': `Bearer ${token}` }
         }
       );
 
@@ -937,41 +922,42 @@ useEffect(() => {
   };
 
   const handleProgressUpdate = async () => {
-  if (progress < 0 || progress > 100) {
-    alert('Progress must be between 0 and 100');
-    return;
-  }
-
-  try {
-    setSubmitting(true);
-    
-    const response = await fetch(
-      `${API_BASE_URL}/faculty/dashboard/project/${projectId}/progress`,
-      {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include', // Changed: Use credentials instead of Authorization header
-        body: JSON.stringify({ progress: parseInt(progress) })
-      }
-    );
-
-    if (response.ok) {
-      const message = await response.text();
-      alert(message);
-      setShowProgressModal(false);
-      onStatusUpdate();
-    } else {
-      const errorText = await response.text();
-      alert('Error: ' + errorText);
+    if (progress < 0 || progress > 100) {
+      alert('Progress must be between 0 and 100');
+      return;
     }
-  } catch (err) {
-    alert('Error updating progress: ' + err.message);
-  } finally {
-    setSubmitting(false);
-  }
-};
+
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(
+        `${API_BASE_URL}/faculty/dashboard/project/${projectId}/progress`,
+        {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ progress: parseInt(progress) })
+        }
+      );
+
+      if (response.ok) {
+        const message = await response.text();
+        alert(message);
+        setShowProgressModal(false);
+        onStatusUpdate();
+      } else {
+        const errorText = await response.text();
+        alert('Error: ' + errorText);
+      }
+    } catch (err) {
+      alert('Error updating progress: ' + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const getFileIcon = (fileName, isDirectory) => {
     const isDir = isDirectory === true || isDirectory?.directory === true;
@@ -1272,7 +1258,6 @@ const FacultyDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [facultyData, setFacultyData] = useState(null);
-  
   const [viewingProjectId, setViewingProjectId] = useState(null);
   const [dashboardSummary, setDashboardSummary] = useState({
     total: 0,
@@ -1287,139 +1272,91 @@ const FacultyDashboard = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
-  const handleLogout = async () => {
-  try {
-    await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: 'POST',
-      credentials: 'include'
-    });
-  } catch (err) {
-    console.error('Logout error:', err);
-  } finally {
-   
+  const getAuthToken = () => localStorage.getItem('authToken');
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
     window.location.href = '/auth/login';
-  }
-};
-
-useEffect(() => {
-  const verifyAuth = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        // Redirect to login without showing error
-        window.location.href = '/auth/login';
-        return;
-      }
-      
-      const data = await response.json();
-      const normalizedRole = String(data.role).toUpperCase().trim();
-      
-      if (normalizedRole !== 'FACULTY' && normalizedRole !== 'TEACHER') {
-        alert('Unauthorized access. Faculty role required.');
-        window.location.href = '/auth/login';
-        return;
-      }
-      
-     
-      localStorage.setItem('userRole', normalizedRole);
-      
-      // Now fetch dashboard data
-      fetchDashboardData();
-    } catch (err) {
-      console.error('Auth verification error:', err);
-      window.location.href = '/auth/login';
-    }
   };
-  
-  verifyAuth();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);  
+
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) {
+      window.location.href = '/auth/login';
+      return;
+    }
+    fetchDashboardData();
+  }, []);
 
   const fetchDashboardData = async () => {
-  try {
-    setLoading(true);
-    const headers = {
-      'Content-Type': 'application/json'
-    };
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
 
-    const profileResponse = await fetch(`${API_BASE_URL}/faculty/dashboard/profile`, {
-      method: 'GET',
-      headers: headers,
-      credentials: 'include'
-    });
-
-    if (profileResponse.status === 401) {
-      window.location.href = '/auth/login';
-      return;
-    }
-
-    if (profileResponse.ok) {
-      const profile = await profileResponse.json();
-      setFacultyData({
-        name: profile.facultyName || 'Faculty',
-        email: profile.email || '',
-        department: profile.department || 'Department',
-        initials: getInitials(profile.facultyName || 'Faculty')
+      const profileResponse = await fetch(`${API_BASE_URL}/faculty/dashboard/profile`, {
+        method: 'GET',
+        headers: headers
       });
+
+      if (profileResponse.ok) {
+        const profile = await profileResponse.json();
+        setFacultyData({
+          name: profile.facultyName || 'Faculty',
+          email: profile.email || '',
+          department: profile.department || 'Department',
+          initials: getInitials(profile.facultyName || 'Faculty')
+        });
+      }
+
+      const summaryResponse = await fetch(`${API_BASE_URL}/faculty/dashboard/summary`, {
+        method: 'GET',
+        headers: headers
+      });
+
+      if (summaryResponse.ok) {
+        const summary = await summaryResponse.json();
+        setDashboardSummary(summary);
+      }
+
+      await fetchRequests();
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      if (error.message?.includes('401')) {
+        handleLogout();
+      }
+    } finally {
+      setLoading(false);
     }
-
-    const summaryResponse = await fetch(`${API_BASE_URL}/faculty/dashboard/summary`, {
-      method: 'GET',
-      headers: headers,
-      credentials: 'include'
-    });
-     
-    if (summaryResponse.status === 401) {
-      window.location.href = '/auth/login';
-      return;
-    }
-
-    if (summaryResponse.ok) {
-      const summary = await summaryResponse.json();
-      setDashboardSummary(summary);
-    }
-
-    await fetchRequests();
-
-  } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+  };
 
   const fetchRequests = async () => {
-  try {
-    const headers = {
-      'Content-Type': 'application/json'
-    };
+    try {
+      const token = getAuthToken();
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
 
-    const response = await fetch(`${API_BASE_URL}/faculty/dashboard/requests`, {
-      method: 'GET',
-      headers: headers,
-      credentials: 'include' // Changed: Use credentials instead of Authorization header
-    });
+      const response = await fetch(`${API_BASE_URL}/faculty/dashboard/requests`, {
+        method: 'GET',
+        headers: headers
+      });
 
-    if (response.status === 401) {
-      handleLogout();
-      return;
+      if (response.ok) {
+        const data = await response.json();
+        setRequests(data);
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
     }
-
-    if (response.ok) {
-      const data = await response.json();
-      setRequests(data);
-    }
-  } catch (error) {
-    console.error('Error fetching requests:', error);
-  }
-};
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return '';

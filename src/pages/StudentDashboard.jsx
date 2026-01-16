@@ -1,6 +1,6 @@
-import React, { useState, useEffect,useCallback } from 'react';
-import { GraduationCap, FolderOpen, Clock, CheckCircle, Users, Plus, Search, TrendingUp, Star, Menu, X, LogOut, Upload, FileText, AlertCircle, ChevronRight, Folder, File, Code, Image as ImageIcon, Download, ArrowLeft, Brain, Sparkles, Lock, Trash2 } from 'lucide-react';
 
+import React, { useState, useEffect } from 'react';
+import { GraduationCap, FolderOpen, Clock, CheckCircle, Users, Plus, Search, TrendingUp, Star, Menu, X, LogOut, Upload, FileText, AlertCircle, ChevronRight, Folder, File, Code, Image as ImageIcon, Download, ArrowLeft, Brain, Sparkles, Lock, Trash2 } from 'lucide-react';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 // File Viewer Component
@@ -14,56 +14,47 @@ const FileViewer = ({ projectId, onBack }) => {
   const [downloading, setDownloading] = useState(false);
   const [loadingContent, setLoadingContent] = useState(false);
 
- 
+  useEffect(() => {
+    fetchFiles(currentPath);
+    setSelectedFile(null);
+    setFileContent('');
+  }, [currentPath, projectId]);
 
-const fetchFiles = useCallback(async (path) => {
-  try {
-    setLoading(true);
-    setError('');
-    
-    const url = `${API_BASE_URL}/student/dashboard/project/${projectId}/files${path ? `?path=${encodeURIComponent(path)}` : ''}`;
-    
-    const response = await fetch(url, {
-      credentials: 'include'
-    });
-
-    if (response.status === 401) {
-      alert('Session expired. Please login again.');
-      window.location.href = '/auth/login';
-      return;
-    }
-
-    if (response.ok) {
-      const data = await response.json();
-      setFiles(data);
+  const fetchFiles = async (path) => {
+    try {
+      setLoading(true);
       setError('');
-    } else {
-      const errorText = await response.text();
-      setError('Failed to load files: ' + errorText);
-    }
+      const token = localStorage.getItem('authToken');
+      
+      const url = `${API_BASE_URL}/auth/student/dashboard/project/${projectId}/files${path ? `?path=${encodeURIComponent(path)}` : ''}`;
+      
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFiles(data);
+        setError('');
+      } else {
+        const errorText = await response.text();
+        setError('Failed to load files: ' + errorText);
+      }
     } catch (err) {
       setError('Error loading files: ' + err.message);
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
-
-  useEffect(() => {
-    fetchFiles(currentPath);
-    setSelectedFile(null);
-    setFileContent('');
-  }, [currentPath, fetchFiles]);
+  };
 
   const fetchFileContent = async (filePath) => {
     try {
       setLoadingContent(true);
+      const token = localStorage.getItem('authToken');
       
       const response = await fetch(
         `${API_BASE_URL}/auth/student/dashboard/project/${projectId}/file/content?path=${encodeURIComponent(filePath)}`,
-        { 
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include' 
-        }
+        { headers: { 'Authorization': `Bearer ${token}` } }
       );
 
       if (response.ok) {
@@ -97,13 +88,13 @@ const fetchFiles = useCallback(async (path) => {
     try {
       setDownloading(true);
       setError('');
+      const token = localStorage.getItem('authToken');
       
       const response = await fetch(
         `${API_BASE_URL}/auth/student/dashboard/project/${projectId}/file/download?path=${encodeURIComponent(selectedFile.path)}`,
         {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include'
+          headers: { 'Authorization': `Bearer ${token}` }
         }
       );
 
@@ -367,9 +358,9 @@ const CreateProjectModal = ({ isOpen, onClose, onSuccess }) => {
 
   const fetchColleges = async () => {
     try {
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_BASE_URL}/auth/colleges`, {
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
@@ -382,9 +373,9 @@ const CreateProjectModal = ({ isOpen, onClose, onSuccess }) => {
 
   const fetchFaculties = async (collegeId) => {
     try {
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_BASE_URL}/auth/colleges/${collegeId}/faculties`, {
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
@@ -449,6 +440,7 @@ const CreateProjectModal = ({ isOpen, onClose, onSuccess }) => {
     setLoading(true);
 
     try {
+      const token = localStorage.getItem('authToken');
       const formDataToSend = new FormData();
       
       const jsonData = {
@@ -468,7 +460,7 @@ const CreateProjectModal = ({ isOpen, onClose, onSuccess }) => {
 
       const response = await fetch(`${API_BASE_URL}/auth/student/dashboard/create/project`, {
         method: 'POST',
-        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formDataToSend,
         signal: controller.signal
       });
@@ -640,7 +632,7 @@ const CreateProjectModal = ({ isOpen, onClose, onSuccess }) => {
 
 // AI Project Recommendation Component
 const AIProjectRecommendation = ({ studentId, onClose }) => {
-  const AI_SERVICE_URL = process.env.REACT_APP_AI_SERVICE_URL_RECO || 'http://localhost:8000';
+ const AI_SERVICE_URL = process.env.REACT_APP_AI_SERVICE_URL_RECO || 'http://localhost:8000';
   const [step, setStep] = useState('form');
   const [formData, setFormData] = useState({
     skills: [],
@@ -694,7 +686,6 @@ const AIProjectRecommendation = ({ studentId, onClose }) => {
       const response = await fetch(`${AI_SERVICE_URL}/api/ai/recommend-project`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           student_id: studentId,
           skills: formData.skills,
@@ -933,55 +924,60 @@ const StudentDashboard = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
+  const getAuthToken = () => localStorage.getItem('authToken');
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
     window.location.href = '/auth/login';
   };
 
   const handleDeleteProject = async (projectId) => {
-    if (!projectId) {
-      alert('Invalid project ID');
-      return;
-    }
+  if (!projectId) {
+    alert('Invalid project ID');
+    return;
+  }
+  
+  if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    setDeletingProject(projectId);
+    const token = getAuthToken();
     
-    if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-      return;
-    }
-    
-    try {
-      setDeletingProject(projectId);
-      
-      const response = await fetch(`${API_BASE_URL}/auth/student/dashboard/delete-project/${projectId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
-      
-      const responseText = await response.text();
-      
-      if (response.ok) {
-        alert(responseText || 'Project deleted successfully');
-        fetchDashboardData();
-        if (activeTab === 'projects') fetchAllProjects();
-      } else {
-        alert(`Failed to delete project:\n\nStatus: ${response.status}\nError: ${responseText}`);
+    const response = await fetch(`${API_BASE_URL}/auth/student/dashboard/delete-project/${projectId}`, {
+      method: 'DELETE',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'  // Add this
       }
-    } catch (err) {
-      alert('Network error while deleting project: ' + err.message);
-    } finally {
-      setDeletingProject(null);
+    });
+    
+    // Read the response body BEFORE checking status
+    const responseText = await response.text();
+    
+    if (response.ok) {
+      alert(responseText || 'Project deleted successfully');
+      fetchDashboardData();
+      if (activeTab === 'projects') fetchAllProjects();
+    } else {
+      // Show the actual error from backend
+      console.error('Delete failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: responseText
+      });
+      alert(`Failed to delete project:\n\nStatus: ${response.status}\nError: ${responseText}`);
     }
-  };
-
+  } catch (err) {
+    console.error('Network error:', err);
+    alert('Network error while deleting project: ' + err.message);
+  } finally {
+    setDeletingProject(null);
+  }
+};
   const handleDeleteProfile = async () => {
     if (!window.confirm('⚠️ WARNING: This will permanently delete your account and ALL your projects. This action cannot be undone. Are you absolutely sure?')) {
       return;
@@ -992,10 +988,10 @@ const StudentDashboard = () => {
     }
     
     try {
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/auth/student/dashboard/delete-student`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
@@ -1011,108 +1007,88 @@ const StudentDashboard = () => {
     }
   };
 
-   useEffect(() => {
-  const verifyAuth = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        // Redirect to login
-        window.location.href = '/auth/login';
-        return;
-      }
-      
-      const data = await response.json();
-      const normalizedRole = String(data.role).toUpperCase().trim();
-      
-      if (normalizedRole !== 'STUDENT') {
-        alert('Unauthorized access. Student role required.');
-        window.location.href = '/auth/login';
-        return;
-      }
-      
-      // Store role
-      localStorage.setItem('userRole', normalizedRole);
-      
-      // Now fetch dashboard data
-      fetchDashboardData();
-    } catch (err) {
-      console.error('Auth verification error:', err);
-      window.location.href = '/auth/login';
-    }
-  };
-  
-  verifyAuth();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
-
-
-const fetchDashboardData = useCallback(async () => {
-  try {
-    setLoading(true);
-
-    const profileResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/profile`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
-
-    if (profileResponse.status === 401) {
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) {
       window.location.href = '/auth/login';
       return;
     }
+    fetchDashboardData();
+  }, []);
 
-    if (profileResponse.ok) {
-      const profile = await profileResponse.json();
-      setStudentData({
-        studentId: profile.studentId,
-        name: profile.studentName || 'Student',
-        email: profile.email || '',
-        college: profile.collegeName || 'College',
-        initials: getInitials(profile.studentName || 'Student')
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
+      const profileResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/profile`, {
+        method: 'GET',
+        headers: headers,
+        credentials: 'include'
       });
+
+      if (profileResponse.ok) {
+        const profile = await profileResponse.json();
+        setStudentData({
+          studentId: profile.studentId,
+          name: profile.studentName || 'Student',
+          email: profile.email || '',
+          college: profile.collegeName || 'College',
+          initials: getInitials(profile.studentName || 'Student')
+        });
+      }
+
+      const summaryResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/summary`, {
+        method: 'GET',
+        headers: headers,
+        credentials: 'include'
+      });
+
+      if (summaryResponse.ok) {
+        const summary = await summaryResponse.json();
+        setDashboardSummary(summary);
+      }
+
+      const projectsResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/recent-projects`, {
+        method: 'GET',
+        headers: headers,
+        credentials: 'include'
+      });
+
+      if (projectsResponse.ok) {
+        const projects = await projectsResponse.json();
+        setRecentProjects(projects);
+      }
+
+      if (activeTab === 'projects') {
+        await fetchAllProjects();
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      if (error.message?.includes('401')) {
+        handleLogout();
+      }
+    } finally {
+      setLoading(false);
     }
-
-    const summaryResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/summary`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
-
-    if (summaryResponse.ok) {
-      const summary = await summaryResponse.json();
-      setDashboardSummary(summary);
-    }
-
-    const projectsResponse = await fetch(`${API_BASE_URL}/auth/student/dashboard/recent-projects`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
-
-    if (projectsResponse.ok) {
-      const projects = await projectsResponse.json();
-      setRecentProjects(projects);
-    }
-
-    if (activeTab === 'projects') {
-      await fetchAllProjects();
-    }
-
-  } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-  } finally {
-    setLoading(false);
-  }
-}, [activeTab]);
+  };
 
   const fetchAllProjects = async () => {
     try {
+      const token = getAuthToken();
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
       const response = await fetch(`${API_BASE_URL}/auth/student/dashboard/projects`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         credentials: 'include'
       });
 
