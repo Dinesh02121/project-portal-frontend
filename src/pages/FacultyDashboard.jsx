@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { GraduationCap, FolderOpen, Brain, Clock, CheckCircle, XCircle, Users, Menu, X, LogOut, FileText, AlertCircle, ChevronRight, Folder, File, Code, Image as ImageIcon, Download, ArrowLeft, ThumbsUp, ThumbsDown, Percent, Star, TrendingUp, TrendingDown, Award, FileCode, Shield, Zap, BookOpen,FileDown } from 'lucide-react';
+import React, { useState, useEffect,useCallback } from 'react';
+import { GraduationCap, FolderOpen, Brain, Clock, CheckCircle, XCircle, Menu, X, LogOut, FileText, AlertCircle, ChevronRight, Folder, File, Code, Image as ImageIcon, Download, ArrowLeft, ThumbsUp, ThumbsDown, Percent, Star, TrendingUp, TrendingDown, Award, FileCode, Shield, Zap, BookOpen,FileDown } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 const AI_ANALYSIS_URL = process.env.REACT_APP_AI_SERVICE_URL_REVIEW || 'http://localhost:8000';
@@ -756,18 +756,18 @@ const FacultyFileViewer = ({ projectId, onBack, onStatusUpdate }) => {
     }
   };
 
-  const fetchProjectDetails = async () => {
+  const fetchProjectDetails = useCallback(async () => {
   try {
     const response = await fetch(
       `${API_BASE_URL}/faculty/dashboard/project/${projectId}/details`,
-      { credentials: 'include' } // Changed: Use credentials instead of Authorization header
+      { credentials: 'include' }
     );
 
-     if (response.status === 401) {
+    if (response.status === 401) {
       alert('Session expired. Please login again.');
       window.location.href = '/auth/login';
       return;
-      }
+    }
 
     if (response.ok) {
       const data = await response.json();
@@ -775,12 +775,13 @@ const FacultyFileViewer = ({ projectId, onBack, onStatusUpdate }) => {
     }
   } catch (err) {
     console.error('Error fetching project details:', err);
-    }
-  };
+  }
+}, [projectId, API_BASE_URL]);
 
-  useEffect(() => {
-    fetchProjectDetails();
-  }, [projectId]);
+useEffect(() => {
+  fetchProjectDetails();
+}, [fetchProjectDetails]);
+
 
   const fetchFileContent = async (filePath) => {
     try {
@@ -1315,14 +1316,12 @@ const FacultyDashboard = () => {
       const data = await response.json();
       const normalizedRole = String(data.role).toUpperCase().trim();
       
-      // Verify user is actually a faculty member
       if (normalizedRole !== 'FACULTY' && normalizedRole !== 'TEACHER') {
         alert('Unauthorized access. Faculty role required.');
         window.location.href = '/auth/login';
         return;
       }
       
-      // Store role in localStorage for UI purposes only
       localStorage.setItem('userRole', normalizedRole);
       
       fetchDashboardData();
@@ -1333,7 +1332,8 @@ const FacultyDashboard = () => {
   };
   
   verifyAuth();
-}, [API_BASE_URL]);
+ 
+}, []);
 
   const fetchDashboardData = async () => {
   try {

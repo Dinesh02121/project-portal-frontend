@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useCallback } from 'react';
 import { GraduationCap, FolderOpen, Clock, CheckCircle, Users, Plus, Search, TrendingUp, Star, Menu, X, LogOut, Upload, FileText, AlertCircle, ChevronRight, Folder, File, Code, Image as ImageIcon, Download, ArrowLeft, Brain, Sparkles, Lock, Trash2 } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
@@ -18,34 +18,39 @@ const FileViewer = ({ projectId, onBack }) => {
     fetchFiles(currentPath);
     setSelectedFile(null);
     setFileContent('');
-  }, [currentPath, projectId]);
+  }, [currentPath, fetchFiles]);
 
-  const fetchFiles = async (path) => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const url = `${API_BASE_URL}/auth/student/dashboard/project/${projectId}/files${path ? `?path=${encodeURIComponent(path)}` : ''}`;
-      
-      const response = await fetch(url, {
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
+const fetchFiles = useCallback(async (path) => {
+  try {
+    setLoading(true);
+    setError('');
+    
+    const url = `${API_BASE_URL}/student/dashboard/project/${projectId}/files${path ? `?path=${encodeURIComponent(path)}` : ''}`;
+    
+    const response = await fetch(url, {
+      credentials: 'include'
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        setFiles(data);
-        setError('');
-      } else {
-        const errorText = await response.text();
-        setError('Failed to load files: ' + errorText);
-      }
-    } catch (err) {
-      setError('Error loading files: ' + err.message);
-    } finally {
-      setLoading(false);
+    if (response.status === 401) {
+      alert('Session expired. Please login again.');
+      window.location.href = '/auth/login';
+      return;
     }
-  };
+
+    if (response.ok) {
+      const data = await response.json();
+      setFiles(data);
+      setError('');
+    } else {
+      const errorText = await response.text();
+      setError('Failed to load files: ' + errorText);
+    }
+  } catch (err) {
+    setError('Error loading files: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+}, [projectId, API_BASE_URL]);
 
   const fetchFileContent = async (filePath) => {
     try {
