@@ -86,22 +86,22 @@ const DashboardRedirect = () => {
   switch (authState.role) {
     case 'STUDENT':
       console.log('→ Navigating to /student/dashboard');
-      return <Navigate to="/student/dashboard" replace />;
+      return <Navigate to="auth/student/dashboard" replace />;
       
     case 'FACULTY':
     case 'TEACHER':
       console.log('→ Navigating to /faculty/dashboard');
-      return <Navigate to="/faculty/dashboard" replace />;
+      return <Navigate to="auth/faculty/dashboard" replace />;
       
     case 'COLLEGE':
     case 'COLLEGE_ADMIN':
       console.log('→ Navigating to /college/dashboard');
-      return <Navigate to="/college/dashboard" replace />;
+      return <Navigate to="auth/college/dashboard" replace />;
       
     case 'ADMIN':
     case 'SYSTEM_ADMIN':
       console.log('→ Navigating to /admin/dashboard');
-      return <Navigate to="/admin/dashboard" replace />;
+      return <Navigate to="auth/admin/dashboard" replace />;
       
     default:
       console.log('❌ Unknown role:', authState.role, '- redirecting to login');
