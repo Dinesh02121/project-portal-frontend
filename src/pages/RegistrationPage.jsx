@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Mail, Lock, User, Building, AlertCircle, ArrowLeft, GraduationCap, Users, Shield } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Phone, Building, AlertCircle, ArrowLeft, GraduationCap, Users, Shield } from 'lucide-react';
 
 // Main Registration Hub Component
 function RegistrationHub({ onSelectType }) {
