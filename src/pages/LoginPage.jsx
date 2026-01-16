@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from 'lucide-react';
 
-
 export default function LoginPage() {
   const hasRedirected = useRef(false);
   const isRedirecting = useRef(false);
@@ -19,77 +18,78 @@ export default function LoginPage() {
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
+  // Verify authentication on mount
+  useEffect(() => {
+    if (hasRedirected.current) {
+      console.log('⚠️ Already redirected, skipping auth check');
+      return;
+    }
+    
+    verifyAuth();
+  }, []);
+
+  const verifyAuth = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+        method: 'GET',
+        credentials: 'include' // Important: include cookies
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Already authenticated:', data);
+        hasRedirected.current = true;
+        redirectBasedOnRole(data.role);
+      }
+    } catch (err) {
+      console.log('Not authenticated or error:', err);
+    }
+  };
 
   const redirectBasedOnRole = (role) => {
     if (isRedirecting.current) {
-      console.log('âš ï¸ Redirect already in progress, skipping');
+      console.log('⚠️ Redirect already in progress, skipping');
       return;
     }
     
     isRedirecting.current = true;
     const normalizedRole = String(role).toUpperCase().trim();
-    console.log('ðŸ”€ Redirecting based on role:', normalizedRole);
+    console.log('🔀 Redirecting based on role:', normalizedRole);
     
-    const savedToken = localStorage.getItem('authToken');
-    const savedRole = localStorage.getItem('userRole');
-    
-    console.log('âœ… Pre-redirect verification:');
-    console.log('   Token saved:', !!savedToken);
-    console.log('   Role saved:', savedRole);
-    
-    if (!savedToken || !savedRole) {
-      console.error('âŒ Token not saved properly! Retrying...');
-      localStorage.setItem('authToken', localStorage.getItem('authToken') || savedToken);
-      localStorage.setItem('userRole', normalizedRole);
-    }
+    // Store role in localStorage for PrivateRoute verification
+    localStorage.setItem('userRole', normalizedRole);
     
     switch (normalizedRole) {
       case 'ADMIN':
       case 'SYSTEM_ADMIN':
-        console.log('â†’ Going to /auth/admin/dashboard');
+        console.log('→ Going to /auth/admin/dashboard');
         window.location.href = '/auth/admin/dashboard';
         break;
       case 'COLLEGE_ADMIN':
       case 'COLLEGE':
       case 'COLLEGEADMIN':
-        console.log('â†’ Going to /auth/college/dashboard');
+        console.log('→ Going to /auth/college/dashboard');
         window.location.href = '/auth/college/dashboard';
         break;
       case 'FACULTY':
       case 'TEACHER':
-        console.log('â†’ Going to /auth/faculty/dashboard');
+        console.log('→ Going to /auth/faculty/dashboard');
         window.location.href = '/auth/faculty/dashboard';
         break;
       case 'STUDENT':
-        console.log('â†’ Going to /auth/student/dashboard');
+        console.log('→ Going to /auth/student/dashboard');
         window.location.href = '/auth/student/dashboard';
         break;
       default:
-        console.error('âŒ Unknown role for redirect:', normalizedRole);
+        console.error('❌ Unknown role for redirect:', normalizedRole);
         setError(`Unknown role: ${normalizedRole}. Please contact support.`);
         isRedirecting.current = false;
     }
   };
 
-  useEffect(() => {
-    if (hasRedirected.current) {
-      console.log('âš ï¸ Already redirected, skipping auth check');
-      return;
-    }
-    
-    const token = localStorage.getItem('authToken');
-    const role = localStorage.getItem('userRole');
-    
-    if (token && role) {
-      console.log('âœ… Already logged in, redirecting based on role:', role);
-      hasRedirected.current = true;
-      redirectBasedOnRole(role);
-    }
-  }, []);
-
   const handleSubmit = async () => {
     if (isRedirecting.current) {
-      console.log('âš ï¸ Redirect in progress, ignoring submit');
+      console.log('⚠️ Redirect in progress, ignoring submit');
       return;
     }
 
@@ -105,10 +105,10 @@ export default function LoginPage() {
     const endpoint = loginType === 'admin' ? '/auth/loginAdmin' : '/auth/login';
     
     try {
-      console.log('ðŸ” LOGIN ATTEMPT STARTED');
-      console.log('ðŸ“ Endpoint:', `${API_BASE_URL}${endpoint}`);
-      console.log('ðŸ“§ Email:', formData.email);
-      console.log('ðŸŽ­ Login Type:', loginType);
+      console.log('🔐 LOGIN ATTEMPT STARTED');
+      console.log('🔗 Endpoint:', `${API_BASE_URL}${endpoint}`);
+      console.log('📧 Email:', formData.email);
+      console.log('🎭 Login Type:', loginType);
       
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
@@ -119,29 +119,24 @@ export default function LoginPage() {
           email: formData.email,
           password: formData.password
         }),
-        credentials: 'include'
+        credentials: 'include' // CRITICAL: Include cookies in request
       });
       
-      console.log('ðŸ“¡ Response Status:', response.status);
+      console.log('📡 Response Status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('âŒ Error Response Body:', errorText);
+        console.error('❌ Error Response Body:', errorText);
         throw new Error(errorText || `Login failed with status ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('âœ… LOGIN RESPONSE RECEIVED');
-      console.log('ðŸ“¦ Full Response:', JSON.stringify(data, null, 2));
+      console.log('✅ LOGIN RESPONSE RECEIVED');
+      console.log('📦 Response:', data);
       
-      const token = data.token;
       const role = data.role;
       const email = data.email;
       const message = data.message;
-      
-      if (!token) {
-        throw new Error('No authentication token received from server');
-      }
       
       if (!role) {
         throw new Error('No role information received from server');
@@ -150,9 +145,10 @@ export default function LoginPage() {
       const normalizedRole = String(role).toUpperCase().trim();
       console.log('Normalized role:', normalizedRole);
       
-      localStorage.setItem('authToken', token);
+      // Store only role in localStorage (token is in httpOnly cookie)
       localStorage.setItem('userRole', normalizedRole);
       
+      // Store user info (optional, for display purposes)
       const userObj = {
         email: email,
         role: normalizedRole
@@ -163,11 +159,11 @@ export default function LoginPage() {
       
       hasRedirected.current = true;
       
-      console.log('ðŸš€ INITIATING REDIRECT');
+      console.log('🚀 INITIATING REDIRECT');
       redirectBasedOnRole(normalizedRole);
         
     } catch (err) {
-      console.error('âŒ LOGIN ERROR:', err.message);
+      console.error('❌ LOGIN ERROR:', err.message);
       setError(err.message || 'Login failed. Please check your credentials and try again.');
       setLoading(false);
       isRedirecting.current = false;

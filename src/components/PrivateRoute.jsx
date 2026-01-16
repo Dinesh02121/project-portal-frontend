@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
 const PrivateRoute = ({ children, allowedRoles }) => {
@@ -6,105 +6,71 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   const [authState, setAuthState] = useState({
     loading: true,
     authenticated: false,
-    role: null,
-    error: null
+    role: null
   });
-
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+  
+  const API_BASE_URL = 'http://localhost:8080';
 
   useEffect(() => {
-    const verifyAuth = async () => {
-      // Skip verification if on login page to prevent redirect loop
-      if (location.pathname === '/auth/login') {
-        console.log('📍 On login page - skipping verification');
+    verifyAuthentication();
+  }, []);
+
+  const verifyAuthentication = async () => {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔒 PRIVATE ROUTE - VERIFYING AUTH');
+    console.log('📍 Current Path:', location.pathname);
+    console.log('🎭 Allowed Roles:', allowedRoles);
+
+    try {
+      // Call verify endpoint which checks httpOnly cookie
+      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+        method: 'GET',
+        credentials: 'include' // Include cookies
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Authentication verified:', data);
+        
+        const normalizedRole = data.role.toUpperCase().trim();
+        console.log('🔄 Normalized Role:', normalizedRole);
+        
+        // Store role in localStorage for client-side checks
+        localStorage.setItem('userRole', normalizedRole);
+        
+        setAuthState({
+          loading: false,
+          authenticated: true,
+          role: normalizedRole
+        });
+      } else {
+        console.log('❌ Authentication failed - Status:', response.status);
+        clearAuthState();
         setAuthState({
           loading: false,
           authenticated: false,
-          role: null,
-          error: null
-        });
-        return;
-      }
-
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('🔒 PRIVATE ROUTE CHECK');
-      console.log('📍 Current Path:', location.pathname);
-      console.log('🎭 Allowed Roles:', allowedRoles);
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-          credentials: 'include' // Send httpOnly cookie
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const userRole = data.role;
-
-          console.log('✅ Authentication verified via API');
-          console.log('👤 User Role:', userRole);
-
-          const normalizedRole = String(userRole).toUpperCase().trim();
-          const normalizedAllowedRoles = allowedRoles.map(r => r.toUpperCase().trim());
-
-          console.log('🔄 Normalized Role:', normalizedRole);
-          console.log('✅ Normalized Allowed Roles:', normalizedAllowedRoles);
-
-          const hasAccess = normalizedAllowedRoles.includes(normalizedRole);
-          console.log('🎫 Access Check:', hasAccess ? '✓ GRANTED' : '✗ DENIED');
-
-          if (hasAccess) {
-            console.log('✅ Access granted - rendering protected content');
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            
-            setAuthState({
-              loading: false,
-              authenticated: true,
-              role: normalizedRole,
-              error: null
-            });
-          } else {
-            console.log('❌ Role mismatch!');
-            console.log('   User role:', normalizedRole);
-            console.log('   Allowed roles:', normalizedAllowedRoles);
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-            setAuthState({
-              loading: false,
-              authenticated: false,
-              role: null,
-              error: 'Unauthorized access'
-            });
-          }
-        } else {
-          console.log('❌ Authentication failed: Invalid or expired session');
-          console.log('→ Redirecting to login');
-          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-          setAuthState({
-            loading: false,
-            authenticated: false,
-            role: null,
-            error: 'Session expired'
-          });
-        }
-      } catch (error) {
-        console.error('❌ Auth verification error:', error);
-        console.log('→ Redirecting to login');
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-        setAuthState({
-          loading: false,
-          authenticated: false,
-          role: null,
-          error: 'Authentication check failed'
+          role: null
         });
       }
-    };
+    } catch (error) {
+      console.error('❌ Verification error:', error);
+      clearAuthState();
+      setAuthState({
+        loading: false,
+        authenticated: false,
+        role: null
+      });
+    }
+    
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  };
 
-    verifyAuth();
-  }, [location.pathname, allowedRoles, API_BASE_URL]);
+  const clearAuthState = () => {
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('user');
+  };
 
-  // Show loading spinner while checking auth
+  // Show loading state
   if (authState.loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
@@ -113,24 +79,34 @@ const PrivateRoute = ({ children, allowedRoles }) => {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <p className="text-gray-600 font-medium">Verifying authentication...</p>
+          <p className="text-gray-600">Verifying authentication...</p>
         </div>
       </div>
     );
   }
 
-  // Redirect to login if not authenticated (only if not already on login page)
-  if (!authState.authenticated && location.pathname !== '/auth/login') {
-    return (
-      <Navigate 
-        to="/auth/login" 
-        state={{ from: location, error: authState.error }} 
-        replace 
-      />
-    );
+  // Not authenticated
+  if (!authState.authenticated || !authState.role) {
+    console.log('❌ Not authenticated - redirecting to login');
+    return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  // Render protected content if authenticated and authorized
+  // Check role authorization
+  const normalizedAllowedRoles = allowedRoles.map(r => r.toUpperCase().trim());
+  const hasAccess = normalizedAllowedRoles.includes(authState.role);
+  
+  console.log('🎫 Access Check:');
+  console.log('   User role:', authState.role);
+  console.log('   Allowed roles:', normalizedAllowedRoles);
+  console.log('   Has access:', hasAccess);
+
+  if (!hasAccess) {
+    console.log('❌ Role mismatch - unauthorized');
+    clearAuthState();
+    return <Navigate to="/auth/login" state={{ from: location, error: 'Unauthorized access' }} replace />;
+  }
+
+  console.log('✅ Access granted - rendering protected content');
   return children;
 };
 
