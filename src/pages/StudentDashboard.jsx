@@ -14,11 +14,7 @@ const FileViewer = ({ projectId, onBack }) => {
   const [downloading, setDownloading] = useState(false);
   const [loadingContent, setLoadingContent] = useState(false);
 
-  useEffect(() => {
-    fetchFiles(currentPath);
-    setSelectedFile(null);
-    setFileContent('');
-  }, [currentPath, fetchFiles]);
+ 
 
 const fetchFiles = useCallback(async (path) => {
   try {
@@ -45,12 +41,18 @@ const fetchFiles = useCallback(async (path) => {
       const errorText = await response.text();
       setError('Failed to load files: ' + errorText);
     }
-  } catch (err) {
-    setError('Error loading files: ' + err.message);
-  } finally {
-    setLoading(false);
-  }
-}, [projectId, API_BASE_URL]);
+    } catch (err) {
+      setError('Error loading files: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchFiles(currentPath);
+    setSelectedFile(null);
+    setFileContent('');
+  }, [currentPath, fetchFiles]);
 
   const fetchFileContent = async (filePath) => {
     try {
@@ -1009,8 +1011,9 @@ const StudentDashboard = () => {
     }
   };
 
-  useEffect(() => {
+    useEffect(() => {
     fetchDashboardData();
+
   }, []);
 
   const fetchDashboardData = async () => {

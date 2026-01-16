@@ -100,12 +100,9 @@ function StudentRegistration({ onBack }) {
   
 const API_BASE_URL = process.env.REACT_APP_API_URL ;
 
-  // Fetch approved colleges on component mount
-  useEffect(() => {
-    fetchColleges();
-  }, [fetchColleges]);
 
- const fetchColleges = useCallback(async () => {
+ 
+const fetchColleges = useCallback(async () => {
   try {
     setLoadingColleges(true);
     const response = await fetch(`${API_BASE_URL}/college/all`);
@@ -120,7 +117,11 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ;
   } finally {
     setLoadingColleges(false);
   }
-}, [API_BASE_URL]);
+}, []);
+
+  useEffect(() => {
+    fetchColleges();
+  }, [fetchColleges]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -490,6 +491,7 @@ function FacultyRegistration({ onBack }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loadingColleges, setLoadingColleges] = useState(true);
   const [otpSent, setOtpSent] = useState(false);
   const [success, setSuccess] = useState(false);
   const [colleges, setColleges] = useState([]);
@@ -505,22 +507,28 @@ function FacultyRegistration({ onBack }) {
 
   const API_BASE_URL =  process.env.REACT_APP_API_URL;
 
-  useEffect(() => {
-    fetchColleges();
-  }, []);
+  
 
-  const fetchColleges = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/colleges`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch colleges');
-      }
+  const fetchColleges = useCallback(async () => {
+  try {
+    setLoadingColleges(true);
+    const response = await fetch(`${API_BASE_URL}/college/all`);
+    if (response.ok) {
       const data = await response.json();
       setColleges(data);
-    } catch (err) {
-      console.error('Error fetching colleges:', err);
+    } else {
+      console.error('Failed to fetch colleges');
     }
-  };
+    } catch (error) {
+      console.error('Error fetching colleges:', error);
+    } finally {
+      setLoadingColleges(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchColleges();
+  }, [fetchColleges]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

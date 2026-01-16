@@ -776,7 +776,7 @@ const FacultyFileViewer = ({ projectId, onBack, onStatusUpdate }) => {
   } catch (err) {
     console.error('Error fetching project details:', err);
   }
-}, [projectId, API_BASE_URL]);
+}, [projectId]);
 
 useEffect(() => {
   fetchProjectDetails();
@@ -1270,6 +1270,7 @@ const FacultyDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [facultyData, setFacultyData] = useState(null);
+  
   const [viewingProjectId, setViewingProjectId] = useState(null);
   const [dashboardSummary, setDashboardSummary] = useState({
     total: 0,
@@ -1300,8 +1301,7 @@ const FacultyDashboard = () => {
   }
 };
 
- useEffect(() => {
-  // Verify authentication via API
+useEffect(() => {
   const verifyAuth = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/verify`, {
@@ -1332,8 +1332,7 @@ const FacultyDashboard = () => {
   };
   
   verifyAuth();
- 
-}, []);
+}, []); 
 
   const fetchDashboardData = async () => {
   try {
