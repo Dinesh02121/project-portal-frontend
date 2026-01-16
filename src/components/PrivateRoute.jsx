@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
 const PrivateRoute = ({ children, allowedRoles }) => {
@@ -11,66 +11,60 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   
   const API_BASE_URL = 'http://localhost:8080';
 
-  const clearAuthState = useCallback(() => {
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('user');
-  }, []);
+  useEffect(() => {
+    const verifyAuthentication = async () => {
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🔒 PRIVATE ROUTE - VERIFYING AUTH');
+      console.log('📍 Current Path:', location.pathname);
+      console.log('🎭 Allowed Roles:', allowedRoles);
 
-  const verifyAuthentication = useCallback(async () => {
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('🔒 PRIVATE ROUTE - VERIFYING AUTH');
-    console.log('📍 Current Path:', location.pathname);
-    console.log('🎭 Allowed Roles:', allowedRoles);
-
-    try {
-      // Call verify endpoint which checks httpOnly cookie
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-        method: 'GET',
-        credentials: 'include' // Include cookies
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Authentication verified:', data);
-        
-        const normalizedRole = data.role.toUpperCase().trim();
-        console.log('🔄 Normalized Role:', normalizedRole);
-        
-        // Store role in localStorage for client-side checks
-        localStorage.setItem('userRole', normalizedRole);
-        
-        setAuthState({
-          loading: false,
-          authenticated: true,
-          role: normalizedRole
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+          method: 'GET',
+          credentials: 'include'
         });
-      } else {
-        console.log('❌ Authentication failed - Status:', response.status);
-        clearAuthState();
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Authentication verified:', data);
+          
+          const normalizedRole = data.role.toUpperCase().trim();
+          console.log('🔄 Normalized Role:', normalizedRole);
+          
+          localStorage.setItem('userRole', normalizedRole);
+          
+          setAuthState({
+            loading: false,
+            authenticated: true,
+            role: normalizedRole
+          });
+        } else {
+          console.log('❌ Authentication failed - Status:', response.status);
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('user');
+          setAuthState({
+            loading: false,
+            authenticated: false,
+            role: null
+          });
+        }
+      } catch (error) {
+        console.error('❌ Verification error:', error);
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('user');
         setAuthState({
           loading: false,
           authenticated: false,
           role: null
         });
       }
-    } catch (error) {
-      console.error('❌ Verification error:', error);
-      clearAuthState();
-      setAuthState({
-        loading: false,
-        authenticated: false,
-        role: null
-      });
-    }
-    
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  }, [clearAuthState]);
+      
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    };
 
-  useEffect(() => {
     verifyAuthentication();
-  }, [verifyAuthentication]);
+  }, [location.pathname, allowedRoles]);
 
-  // Show loading state
   if (authState.loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
@@ -85,13 +79,11 @@ const PrivateRoute = ({ children, allowedRoles }) => {
     );
   }
 
-  // Not authenticated
   if (!authState.authenticated || !authState.role) {
     console.log('❌ Not authenticated - redirecting to login');
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  // Check role authorization
   const normalizedAllowedRoles = allowedRoles.map(r => r.toUpperCase().trim());
   const hasAccess = normalizedAllowedRoles.includes(authState.role);
   
@@ -102,7 +94,8 @@ const PrivateRoute = ({ children, allowedRoles }) => {
 
   if (!hasAccess) {
     console.log('❌ Role mismatch - unauthorized');
-    clearAuthState();
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('user');
     return <Navigate to="/auth/login" state={{ from: location, error: 'Unauthorized access' }} replace />;
   }
 

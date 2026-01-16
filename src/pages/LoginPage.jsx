@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
@@ -18,83 +18,71 @@ export default function LoginPage() {
 
   const API_BASE_URL = 'http://localhost:8080';
 
-  const redirectBasedOnRole = useCallback((role) => {
+  useEffect(() => {
+    if (hasRedirected.current) {
+      return;
+    }
+    
+    const verifyAuth = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Already authenticated:', data);
+          hasRedirected.current = true;
+          redirectBasedOnRole(data.role);
+        }
+      } catch (err) {
+        console.log('Not authenticated');
+      }
+    };
+    
+    verifyAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const redirectBasedOnRole = (role) => {
     if (isRedirecting.current) {
-      console.log('⚠️ Redirect already in progress, skipping');
       return;
     }
     
     isRedirecting.current = true;
     const normalizedRole = String(role).toUpperCase().trim();
-    console.log('🔀 Redirecting based on role:', normalizedRole);
     
-    // Store role in localStorage for PrivateRoute verification
     localStorage.setItem('userRole', normalizedRole);
     
     switch (normalizedRole) {
       case 'ADMIN':
       case 'SYSTEM_ADMIN':
-        console.log('→ Going to /auth/admin/dashboard');
         window.location.href = '/auth/admin/dashboard';
         break;
       case 'COLLEGE_ADMIN':
       case 'COLLEGE':
       case 'COLLEGEADMIN':
-        console.log('→ Going to /auth/college/dashboard');
         window.location.href = '/auth/college/dashboard';
         break;
       case 'FACULTY':
       case 'TEACHER':
-        console.log('→ Going to /auth/faculty/dashboard');
         window.location.href = '/auth/faculty/dashboard';
         break;
       case 'STUDENT':
-        console.log('→ Going to /auth/student/dashboard');
         window.location.href = '/auth/student/dashboard';
         break;
       default:
-        console.error('❌ Unknown role for redirect:', normalizedRole);
-        setError(`Unknown role: ${normalizedRole}. Please contact support.`);
+        setError(`Unknown role: ${normalizedRole}`);
         isRedirecting.current = false;
     }
-  }, [setError]);
-
-  const verifyAuth = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-        method: 'GET',
-        credentials: 'include' // Important: include cookies
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Already authenticated:', data);
-        hasRedirected.current = true;
-        redirectBasedOnRole(data.role);
-      }
-    } catch (err) {
-      console.log('Not authenticated or error:', err);
-    }
-  }, [redirectBasedOnRole]);
-
-  // Verify authentication on mount
-  useEffect(() => {
-    if (hasRedirected.current) {
-      console.log('⚠️ Already redirected, skipping auth check');
-      return;
-    }
-    
-    verifyAuth();
-  }, [verifyAuth]);
+  };
 
   const handleSubmit = async () => {
-    if (isRedirecting.current) {
-      console.log('⚠️ Redirect in progress, ignoring submit');
-      return;
-    }
-
-    if (!formData.email || !formData.password) {
-      setError('Please fill in all fields');
+    if (isRedirecting.current || !formData.email || !formData.password) {
+      if (!formData.email || !formData.password) {
+        setError('Please fill in all fields');
+      }
       return;
     }
 
@@ -105,11 +93,6 @@ export default function LoginPage() {
     const endpoint = loginType === 'admin' ? '/auth/loginAdmin' : '/auth/login';
     
     try {
-      console.log('🔐 LOGIN ATTEMPT STARTED');
-      console.log('🔗 Endpoint:', `${API_BASE_URL}${endpoint}`);
-      console.log('📧 Email:', formData.email);
-      console.log('🎭 Login Type:', loginType);
-      
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
@@ -119,52 +102,34 @@ export default function LoginPage() {
           email: formData.email,
           password: formData.password
         }),
-        credentials: 'include' // CRITICAL: Include cookies in request
+        credentials: 'include'
       });
-      
-      console.log('📡 Response Status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Error Response Body:', errorText);
-        throw new Error(errorText || `Login failed with status ${response.status}`);
+        throw new Error(errorText || `Login failed`);
       }
       
       const data = await response.json();
-      console.log('✅ LOGIN RESPONSE RECEIVED');
-      console.log('📦 Response:', data);
       
-      const role = data.role;
-      const email = data.email;
-      const message = data.message;
-      
-      if (!role) {
-        throw new Error('No role information received from server');
+      if (!data.role) {
+        throw new Error('No role information received');
       }
       
-      const normalizedRole = String(role).toUpperCase().trim();
-      console.log('Normalized role:', normalizedRole);
+      const normalizedRole = String(data.role).toUpperCase().trim();
       
-      // Store only role in localStorage (token is in httpOnly cookie)
       localStorage.setItem('userRole', normalizedRole);
-      
-      // Store user info (optional, for display purposes)
-      const userObj = {
-        email: email,
+      localStorage.setItem('user', JSON.stringify({
+        email: data.email,
         role: normalizedRole
-      };
-      localStorage.setItem('user', JSON.stringify(userObj));
+      }));
       
-      setSuccess(message || 'Login successful! Redirecting...');
-      
+      setSuccess(data.message || 'Login successful!');
       hasRedirected.current = true;
-      
-      console.log('🚀 INITIATING REDIRECT');
       redirectBasedOnRole(normalizedRole);
         
     } catch (err) {
-      console.error('❌ LOGIN ERROR:', err.message);
-      setError(err.message || 'Login failed. Please check your credentials and try again.');
+      setError(err.message || 'Login failed');
       setLoading(false);
       isRedirecting.current = false;
     }
@@ -202,7 +167,6 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-4">
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
         
-        {/* Left Side - Login Form */}
         <div className="w-full md:w-1/2 p-8 md:p-12">
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-6">
@@ -220,7 +184,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Error/Success Messages */}
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -237,7 +200,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Login Type Toggle */}
           <div className="flex gap-3 mb-6">
             <button
               type="button"
@@ -267,7 +229,6 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Social Login Buttons */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <button 
               type="button"
@@ -300,7 +261,6 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-gray-300"></div>
           </div>
 
-          {/* Login Form */}
           <div className="space-y-4">
             <div>
               <div className="relative">
@@ -394,7 +354,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Right Side - Campus Image */}
         <div className="w-full md:w-1/2 relative overflow-hidden">
           <img 
             src="/ProjectPortalLoginImage.png" 
@@ -403,7 +362,6 @@ export default function LoginPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
           
-          {/* Overlay Text */}
           <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 text-white">
             <div className="mb-4">
               <h2 className="text-3xl md:text-4xl font-bold mb-3">
