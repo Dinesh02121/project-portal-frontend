@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
+// Define API_BASE_URL outside component to avoid dependency warning
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+
 const PrivateRoute = ({ children, allowedRoles }) => {
   const location = useLocation();
   const [authState, setAuthState] = useState({
@@ -8,9 +11,6 @@ const PrivateRoute = ({ children, allowedRoles }) => {
     authenticated: false,
     role: null
   });
-  
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-
 
   useEffect(() => {
     const verifyAuthentication = async () => {
