@@ -1013,10 +1013,10 @@ const StudentDashboard = () => {
 
     useEffect(() => {
     fetchDashboardData();
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -1071,7 +1071,7 @@ const StudentDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
 
   const fetchAllProjects = async () => {
     try {

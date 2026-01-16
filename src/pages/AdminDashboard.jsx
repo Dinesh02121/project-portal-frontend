@@ -232,6 +232,7 @@ const updateCollegeStatus = async (collegeName, status) => {
       };
       loadInitialData();
     }
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authChecked]);
 
   const getInitials = (name) => {

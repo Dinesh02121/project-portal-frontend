@@ -117,7 +117,7 @@ const fetchColleges = useCallback(async () => {
   } finally {
     setLoadingColleges(false);
   }
-}, []);
+}, [API_BASE_URL]);
 
   useEffect(() => {
     fetchColleges();
@@ -491,7 +491,6 @@ function FacultyRegistration({ onBack }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [loadingColleges, setLoadingColleges] = useState(true);
   const [otpSent, setOtpSent] = useState(false);
   const [success, setSuccess] = useState(false);
   const [colleges, setColleges] = useState([]);
@@ -511,7 +510,7 @@ function FacultyRegistration({ onBack }) {
 
   const fetchColleges = useCallback(async () => {
   try {
-    setLoadingColleges(true);
+   
     const response = await fetch(`${API_BASE_URL}/college/all`);
     if (response.ok) {
       const data = await response.json();
@@ -521,10 +520,8 @@ function FacultyRegistration({ onBack }) {
     }
     } catch (error) {
       console.error('Error fetching colleges:', error);
-    } finally {
-      setLoadingColleges(false);
-    }
-  }, []);
+    } 
+  }, [API_BASE_URL]);
 
   useEffect(() => {
     fetchColleges();

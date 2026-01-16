@@ -2,7 +2,6 @@ import React, { useState, useEffect,useCallback } from 'react';
 import { GraduationCap, FolderOpen, Brain, Clock, CheckCircle, XCircle, Menu, X, LogOut, FileText, AlertCircle, ChevronRight, Folder, File, Code, Image as ImageIcon, Download, ArrowLeft, ThumbsUp, ThumbsDown, Percent, Star, TrendingUp, TrendingDown, Award, FileCode, Shield, Zap, BookOpen,FileDown } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-const AI_ANALYSIS_URL = process.env.REACT_APP_AI_SERVICE_URL_REVIEW || 'http://localhost:8000';
 
 
 const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescription, onClose }) => {
@@ -10,7 +9,8 @@ const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescripti
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState('');
 
-  const runAnalysis = async () => {
+ 
+  const runAnalysis = useCallback(async () => {
   try {
     setAnalyzing(true);
     setError('');
@@ -42,11 +42,11 @@ const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescripti
   } finally {
     setAnalyzing(false);
   }
-};
+}, [projectId]);
   
   useEffect(() => {
     runAnalysis();
-  }, []);
+  }, [runAnalysis]);
 
   const getGradeColor = (grade) => {
     if (grade.startsWith('A')) return 'text-green-600 bg-green-50';
@@ -718,13 +718,9 @@ const FacultyFileViewer = ({ projectId, onBack, onStatusUpdate }) => {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [projectDetails, setProjectDetails] = useState(null);
 
-  useEffect(() => {
-    fetchFiles(currentPath);
-    setSelectedFile(null);
-    setFileContent('');
-  }, [currentPath, projectId]);
+  
 
-    const fetchFiles = async (path) => {
+    const fetchFiles = useCallback(async (path) => {
     try {
       setLoading(true);
       setError('');
@@ -754,7 +750,13 @@ const FacultyFileViewer = ({ projectId, onBack, onStatusUpdate }) => {
     } finally {
       setLoading(false);
     }
-  };
+  },[projectId]);
+
+   useEffect(() => {
+    fetchFiles(currentPath);
+    setSelectedFile(null);
+    setFileContent('');
+  }, [currentPath, projectId,fetchFiles]);
 
   const fetchProjectDetails = useCallback(async () => {
   try {
@@ -1332,6 +1334,7 @@ useEffect(() => {
   };
   
   verifyAuth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []); 
 
   const fetchDashboardData = async () => {
