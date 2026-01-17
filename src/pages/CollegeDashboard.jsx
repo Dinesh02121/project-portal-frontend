@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Users, GraduationCap, UserCheck, Menu, X, LogOut, Search, Edit, Mail, AlertCircle, CheckCircle, Globe, Phone, MapPin, FileText, TrendingUp, Clock, ChevronRight, Award, BookOpen } from 'lucide-react';
-
+import { Building2, GraduationCap, UserCheck, Menu, X, LogOut, Search, Edit, Mail, AlertCircle, CheckCircle, Globe, Phone, MapPin, TrendingUp, Clock, ChevronRight, Award } from 'lucide-react';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 // Auth Token Manager (using in-memory storage)
