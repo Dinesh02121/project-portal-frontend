@@ -79,11 +79,11 @@ const AdminDashboard = () => {
       throw new Error(`HTTP ${response.status}: ${errorText || 'Request failed'}`);
     }
 
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const text = await response.text();
-      throw new Error('Server returned non-JSON response.');
-    }
+   const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    await response.text(); // Consume the response but don't store it
+    throw new Error('Server returned non-JSON response.');
+  }
 
     const data = await response.json();
     return data;
@@ -261,6 +261,7 @@ const updateCollegeStatus = async (collegeName, status) => {
       
       loadInitialData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authChecked]);
 
   const getInitials = (name) => {
