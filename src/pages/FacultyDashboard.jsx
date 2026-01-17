@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, FolderOpen, Brain, Clock, CheckCircle, XCircle, Users, Menu, X, LogOut, FileText, AlertCircle, ChevronRight, Folder, File, Code, Image as ImageIcon, Download, ArrowLeft, ThumbsUp, ThumbsDown, Percent, Star, TrendingUp, TrendingDown, Award, FileCode, Shield, Zap, BookOpen,FileDown } from 'lucide-react';
+import { GraduationCap, FolderOpen, Brain, Clock, CheckCircle, XCircle, Menu, X, LogOut, FileText, AlertCircle, ChevronRight, Folder, File, Code, Image as ImageIcon, Download, ArrowLeft, ThumbsUp, ThumbsDown, Percent, Star, TrendingUp, TrendingDown, Award, FileCode, Shield, Zap, BookOpen,FileDown } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-
 
 
 const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescription, onClose }) => {
@@ -48,6 +47,7 @@ const AIAnalysisModal = ({ projectId, projectPath, projectName, studentDescripti
   
   useEffect(() => {
     runAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getGradeColor = (grade) => {
@@ -724,6 +724,7 @@ const FacultyFileViewer = ({ projectId, onBack, onStatusUpdate }) => {
     fetchFiles(currentPath);
     setSelectedFile(null);
     setFileContent('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPath, projectId]);
 
   const fetchFiles = async (path) => {
@@ -771,6 +772,7 @@ const FacultyFileViewer = ({ projectId, onBack, onStatusUpdate }) => {
 
   useEffect(() => {
     fetchProjectDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   const fetchFileContent = async (filePath) => {
@@ -1288,6 +1290,7 @@ const FacultyDashboard = () => {
       return;
     }
     fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboardData = async () => {
