@@ -18,6 +18,7 @@ const FileViewer = ({ projectId, onBack }) => {
     fetchFiles(currentPath);
     setSelectedFile(null);
     setFileContent('');
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPath, projectId]);
 
   const fetchFiles = async (path) => {
@@ -1014,6 +1015,7 @@ const StudentDashboard = () => {
       return;
     }
     fetchDashboardData();
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboardData = async () => {
