@@ -103,6 +103,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ;
   // Fetch approved colleges on component mount
   useEffect(() => {
     fetchColleges();
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchColleges = async () => {
@@ -507,6 +508,7 @@ function FacultyRegistration({ onBack }) {
 
   useEffect(() => {
     fetchColleges();
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchColleges = async () => {
