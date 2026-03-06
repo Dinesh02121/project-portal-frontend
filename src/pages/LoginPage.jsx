@@ -6,7 +6,7 @@ export default function LoginPage() {
   const isRedirecting = useRef(false);
 
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState('signin');
+  const [loginType, setLoginType] = useState('user');   // 'user' or 'admin' — same as original
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -18,19 +18,24 @@ export default function LoginPage() {
     if (isRedirecting.current) return;
     isRedirecting.current = true;
     const normalizedRole = String(role).toUpperCase().trim();
+
     switch (normalizedRole) {
       case 'ADMIN':
       case 'SYSTEM_ADMIN':
-        window.location.href = '/auth/admin/dashboard'; break;
+        window.location.href = '/auth/admin/dashboard';
+        break;
       case 'COLLEGE_ADMIN':
       case 'COLLEGE':
       case 'COLLEGEADMIN':
-        window.location.href = '/auth/college/dashboard'; break;
+        window.location.href = '/auth/college/dashboard';
+        break;
       case 'FACULTY':
       case 'TEACHER':
-        window.location.href = '/auth/faculty/dashboard'; break;
+        window.location.href = '/auth/faculty/dashboard';
+        break;
       case 'STUDENT':
-        window.location.href = '/auth/student/dashboard'; break;
+        window.location.href = '/auth/student/dashboard';
+        break;
       default:
         setError(`Unknown role: ${normalizedRole}. Please contact support.`);
         isRedirecting.current = false;
@@ -45,13 +50,23 @@ export default function LoginPage() {
       hasRedirected.current = true;
       redirectBasedOnRole(role);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Exact same logic as original working code
   const handleSubmit = async () => {
     if (isRedirecting.current) return;
-    if (!formData.email || !formData.password) { setError('Please fill in all fields'); return; }
-    setLoading(true); setError(''); setSuccess('');
-    const endpoint = activeTab === 'admin' ? '/auth/loginAdmin' : '/auth/login';
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    const endpoint = loginType === 'admin' ? '/auth/loginAdmin' : '/auth/login';
+
     try {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
@@ -59,22 +74,34 @@ export default function LoginPage() {
         body: JSON.stringify({ email: formData.email, password: formData.password }),
         credentials: 'include'
       });
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || `Login failed with status ${response.status}`);
       }
+
       const data = await response.json();
-      if (!data.token) throw new Error('No authentication token received from server');
-      if (!data.role) throw new Error('No role information received from server');
-      const normalizedRole = String(data.role).toUpperCase().trim();
-      localStorage.setItem('authToken', data.token);
+
+      const token = data.token;
+      const role = data.role;
+      const email = data.email;
+      const message = data.message;
+
+      if (!token) throw new Error('No authentication token received from server');
+      if (!role) throw new Error('No role information received from server');
+
+      const normalizedRole = String(role).toUpperCase().trim();
+
+      localStorage.setItem('authToken', token);
       localStorage.setItem('userRole', normalizedRole);
-      localStorage.setItem('user', JSON.stringify({ email: data.email, role: normalizedRole }));
-      setSuccess(data.message || 'Login successful! Redirecting...');
+      localStorage.setItem('user', JSON.stringify({ email, role: normalizedRole }));
+
+      setSuccess(message || 'Login successful! Redirecting...');
       hasRedirected.current = true;
       redirectBasedOnRole(normalizedRole);
+
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(err.message || 'Login failed. Please check your credentials and try again.');
       setLoading(false);
       isRedirecting.current = false;
     }
@@ -85,13 +112,18 @@ export default function LoginPage() {
     if (error) setError('');
   };
 
-  const handleKeyPress = (e) => { if (e.key === 'Enter') handleSubmit(); };
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') handleSubmit();
+  };
 
   if (hasRedirected.current || isRedirecting.current) {
     return (
       <div style={styles.redirectScreen}>
-        <div style={styles.spinner} />
-        <p style={{ color: '#6b7280', marginTop: 16 }}>Redirecting...</p>
+        <svg style={styles.spinnerSvg} viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5">
+          <circle cx="12" cy="12" r="10" strokeOpacity="0.2" />
+          <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+        </svg>
+        <p style={{ color: '#6b7280', marginTop: 16, fontFamily: 'Outfit, sans-serif' }}>Redirecting...</p>
       </div>
     );
   }
@@ -101,36 +133,48 @@ export default function LoginPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Outfit', sans-serif; }
         .feature-item { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 32px; }
-        .tab-btn { flex: 1; padding: 12px 20px; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 500; border-radius: 12px; transition: all 0.2s; }
-        .tab-btn.active { background: white; color: #1e293b; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
-        .tab-btn.inactive { background: transparent; color: #94a3b8; }
-        .tab-btn.inactive:hover { color: #64748b; }
-        .input-field { width: 100%; padding: 14px 16px 14px 44px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-family: 'Outfit', sans-serif; font-size: 15px; color: #1e293b; background: #f8fafc; outline: none; transition: all 0.2s; }
+        .input-field {
+          width: 100%; padding: 14px 16px 14px 44px;
+          border: 1.5px solid #e2e8f0; border-radius: 12px;
+          font-family: 'Outfit', sans-serif; font-size: 15px; color: #1e293b;
+          background: #f8fafc; outline: none; transition: all 0.2s;
+        }
         .input-field:focus { border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
         .input-field::placeholder { color: #94a3b8; }
         .input-field:disabled { opacity: 0.6; cursor: not-allowed; }
-        .submit-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 12px; font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(59,130,246,0.3); }
+        .tab-btn {
+          flex: 1; padding: 11px 16px; border: none; cursor: pointer;
+          font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500;
+          border-radius: 10px; transition: all 0.2s;
+        }
+        .tab-btn.active { background: white; color: #1e293b; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-weight: 600; }
+        .tab-btn.inactive { background: transparent; color: #94a3b8; }
+        .tab-btn.inactive:hover { color: #64748b; }
+        .submit-btn {
+          width: 100%; padding: 15px;
+          background: linear-gradient(135deg, #3b82f6, #2563eb);
+          color: white; border: none; border-radius: 12px;
+          font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 600;
+          cursor: pointer; transition: all 0.2s;
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          box-shadow: 0 4px 15px rgba(59,130,246,0.3);
+        }
         .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.4); }
         .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .link-btn { background: none; border: none; color: #3b82f6; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: underline; }
-        .link-btn:hover { color: #2563eb; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 0.8s linear infinite; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.45s ease forwards; }
       `}</style>
 
-      {/* Left Panel */}
+      {/* ── Left panel ── */}
       <div style={styles.leftPanel}>
-        {/* Decorative blobs */}
         <div style={styles.blob1} />
         <div style={styles.blob2} />
         <div style={styles.blob3} />
 
         <div style={styles.leftContent}>
-          {/* Logo */}
           <div style={styles.logoRow}>
             <div style={styles.logoIcon}>
               <BookOpen size={28} color="white" />
@@ -141,70 +185,56 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Features */}
-          <div style={styles.featuresArea}>
-            <div className="feature-item">
-              <div style={{ ...styles.featureIcon, background: 'rgba(59,130,246,0.15)' }}>
-                <BookOpen size={22} color="#3b82f6" />
+          <div>
+            {[
+              { icon: <BookOpen size={22} color="#3b82f6" />, bg: 'rgba(59,130,246,0.15)', title: 'Project Management', desc: 'Create, organize, and manage academic projects with powerful tools designed for educational excellence.' },
+              { icon: <Users size={22} color="#10b981" />, bg: 'rgba(16,185,129,0.15)', title: 'Team Collaboration', desc: 'Connect with peers, share resources, and collaborate seamlessly across academic projects and research.' },
+              { icon: <Shield size={22} color="#8b5cf6" />, bg: 'rgba(139,92,246,0.15)', title: 'Faculty Reviews', desc: 'Secure review system with detailed feedback, grading, and professional academic assessment tools.' },
+            ].map((f) => (
+              <div key={f.title} className="feature-item">
+                <div style={{ ...styles.featureIcon, background: f.bg }}>{f.icon}</div>
+                <div>
+                  <div style={styles.featureTitle}>{f.title}</div>
+                  <div style={styles.featureDesc}>{f.desc}</div>
+                </div>
               </div>
-              <div>
-                <div style={styles.featureTitle}>Project Management</div>
-                <div style={styles.featureDesc}>Create, organize, and manage academic projects with powerful tools designed for educational excellence.</div>
-              </div>
-            </div>
-            <div className="feature-item">
-              <div style={{ ...styles.featureIcon, background: 'rgba(16,185,129,0.15)' }}>
-                <Users size={22} color="#10b981" />
-              </div>
-              <div>
-                <div style={styles.featureTitle}>Team Collaboration</div>
-                <div style={styles.featureDesc}>Connect with peers, share resources, and collaborate seamlessly across academic projects and research.</div>
-              </div>
-            </div>
-            <div className="feature-item">
-              <div style={{ ...styles.featureIcon, background: 'rgba(139,92,246,0.15)' }}>
-                <Shield size={22} color="#8b5cf6" />
-              </div>
-              <div>
-                <div style={styles.featureTitle}>Faculty Reviews</div>
-                <div style={styles.featureDesc}>Secure review system with detailed feedback, grading, and professional academic assessment tools.</div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Right Panel - Form */}
+      {/* ── Right panel ── */}
       <div style={styles.rightPanel}>
         <div style={styles.formCard} className="fade-in">
+
           {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
             <div style={styles.formLogo}>
-              <BookOpen size={32} color="white" />
+              <BookOpen size={30} color="white" />
             </div>
             <h1 style={styles.formTitle}>Welcome to<br />ShareXConnect</h1>
             <p style={styles.formSubtitle}>Your Academic Excellence Platform</p>
           </div>
 
-          {/* Tabs */}
+          {/* Login type tabs — loginType: 'user' | 'admin' */}
           <div style={styles.tabContainer}>
             <button
-              className={`tab-btn ${activeTab === 'signin' ? 'active' : 'inactive'}`}
-              onClick={() => { setActiveTab('signin'); setError(''); }}
+              className={`tab-btn ${loginType === 'user' ? 'active' : 'inactive'}`}
+              onClick={() => { setLoginType('user'); setError(''); }}
               disabled={loading}
             >
               Sign In
             </button>
             <button
-              className={`tab-btn ${activeTab === 'admin' ? 'active' : 'inactive'}`}
-              onClick={() => { setActiveTab('admin'); setError(''); }}
+              className={`tab-btn ${loginType === 'admin' ? 'active' : 'inactive'}`}
+              onClick={() => { setLoginType('admin'); setError(''); }}
               disabled={loading}
             >
               Admin Login
             </button>
           </div>
 
-          {/* Messages */}
+          {/* Error / Success alerts */}
           {error && (
             <div style={styles.errorBox}>
               <span style={{ fontSize: 13, color: '#dc2626' }}>⚠ {error}</span>
@@ -216,97 +246,100 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Form Fields */}
-          <div style={{ marginTop: 20 }}>
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>
-                <Mail size={15} color="#3b82f6" style={{ marginRight: 6 }} />
-                Username or Email
-              </label>
-              <div style={styles.inputWrap}>
-                <Mail size={16} color="#94a3b8" style={styles.inputIcon} />
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="username or email@university.edu"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  onKeyPress={handleKeyPress}
-                  disabled={loading}
-                  className="input-field"
-                />
-              </div>
+          {/* Email field */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={styles.label}>
+              <Mail size={14} color="#3b82f6" style={{ marginRight: 6 }} />
+              Username or Email
+            </label>
+            <div style={styles.inputWrap}>
+              <Mail size={16} color="#94a3b8" style={styles.inputIcon} />
+              <input
+                type="email"
+                name="email"
+                placeholder="username or email@university.edu"
+                value={formData.email}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                disabled={loading}
+                className="input-field"
+              />
             </div>
+          </div>
 
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>
-                <Lock size={15} color="#3b82f6" style={{ marginRight: 6 }} />
-                Password
-              </label>
-              <div style={styles.inputWrap}>
-                <Lock size={16} color="#94a3b8" style={styles.inputIcon} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  placeholder="Enter your secure password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  onKeyPress={handleKeyPress}
-                  disabled={loading}
-                  className="input-field"
-                  style={{ paddingRight: 44 }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={styles.eyeBtn}
-                  disabled={loading}
-                >
-                  {showPassword ? <EyeOff size={16} color="#94a3b8" /> : <Eye size={16} color="#94a3b8" />}
-                </button>
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'right', marginBottom: 20 }}>
+          {/* Password field */}
+          <div style={{ marginBottom: 10 }}>
+            <label style={styles.label}>
+              <Lock size={14} color="#3b82f6" style={{ marginRight: 6 }} />
+              Password
+            </label>
+            <div style={styles.inputWrap}>
+              <Lock size={16} color="#94a3b8" style={styles.inputIcon} />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                placeholder="Enter your secure password"
+                value={formData.password}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                disabled={loading}
+                className="input-field"
+                style={{ paddingRight: 44 }}
+              />
               <button
                 type="button"
-                onClick={() => window.location.href = '/auth/forgot-password'}
+                onClick={() => setShowPassword(!showPassword)}
+                style={styles.eyeBtn}
                 disabled={loading}
-                style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
               >
-                Forgot password?
+                {showPassword ? <EyeOff size={16} color="#94a3b8" /> : <Eye size={16} color="#94a3b8" />}
               </button>
             </div>
+          </div>
 
-            <button onClick={handleSubmit} disabled={loading} className="submit-btn">
-              {loading ? (
-                <>
-                  <svg className="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
-                    <path d="M12 2a10 10 0 0 1 10 10" />
-                  </svg>
-                  Signing in...
-                </>
-              ) : (
-                `Sign In to ShareXConnect`
-              )}
+          {/* Forgot password */}
+          <div style={{ textAlign: 'right', marginBottom: 20 }}>
+            <button
+              type="button"
+              onClick={() => window.location.href = '/auth/forgot-password'}
+              disabled={loading}
+              style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
+            >
+              Forgot password?
             </button>
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <div style={{ height: 1, background: '#e2e8f0', marginBottom: 16 }} />
-            <p style={{ fontSize: 14, color: '#94a3b8' }}>New to ShareXConnect?</p>
-            <p style={{ fontSize: 14, color: '#64748b', marginTop: 6 }}>
+          {/* Submit button */}
+          <button onClick={handleSubmit} disabled={loading} className="submit-btn">
+            {loading ? (
+              <>
+                <svg className="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+                  <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+                </svg>
+                Signing in...
+              </>
+            ) : (
+              'Sign In to ShareXConnect'
+            )}
+          </button>
+
+          {/* Register link */}
+          <div style={{ textAlign: 'center', marginTop: 22 }}>
+            <div style={{ height: 1, background: '#e2e8f0', marginBottom: 14 }} />
+            <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 6 }}>New to ShareXConnect?</p>
+            <p style={{ fontSize: 14, color: '#64748b' }}>
               Don't have an account?{' '}
               <button
-                className="link-btn"
                 onClick={() => window.location.href = '/auth/register'}
                 disabled={loading}
+                style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', textDecoration: 'underline' }}
               >
                 Create your account
               </button>
             </p>
           </div>
+
         </div>
       </div>
     </div>
@@ -321,115 +354,105 @@ const styles = {
   },
   redirectScreen: {
     minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
+    display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center',
     background: '#f8fafc',
   },
-  spinner: {
-    width: 40,
-    height: 40,
-    border: '3px solid #e2e8f0',
-    borderTopColor: '#3b82f6',
-    borderRadius: '50%',
+  spinnerSvg: {
+    width: 48, height: 48,
     animation: 'spin 0.8s linear infinite',
   },
   leftPanel: {
     flex: '0 0 58%',
     background: 'linear-gradient(135deg, #dbeafe 0%, #ede9fe 50%, #fce7f3 100%)',
-    position: 'relative',
-    overflow: 'hidden',
-    display: 'flex',
-    alignItems: 'center',
+    position: 'relative', overflow: 'hidden',
+    display: 'flex', alignItems: 'center',
     padding: '60px 80px',
   },
   blob1: {
-    position: 'absolute', width: 400, height: 400,
+    position: 'absolute', width: 420, height: 420,
     background: 'radial-gradient(circle, rgba(147,197,253,0.5) 0%, transparent 70%)',
-    top: -100, left: -100, borderRadius: '50%',
+    top: -120, left: -100, borderRadius: '50%',
   },
   blob2: {
-    position: 'absolute', width: 350, height: 350,
+    position: 'absolute', width: 360, height: 360,
     background: 'radial-gradient(circle, rgba(196,181,253,0.4) 0%, transparent 70%)',
-    bottom: -80, right: 100, borderRadius: '50%',
+    bottom: -80, right: 80, borderRadius: '50%',
   },
   blob3: {
-    position: 'absolute', width: 250, height: 250,
+    position: 'absolute', width: 260, height: 260,
     background: 'radial-gradient(circle, rgba(249,168,212,0.35) 0%, transparent 70%)',
-    bottom: 100, left: 200, borderRadius: '50%',
+    bottom: 110, left: 180, borderRadius: '50%',
   },
   leftContent: { position: 'relative', zIndex: 1, maxWidth: 480 },
-  logoRow: { display: 'flex', alignItems: 'center', gap: 16, marginBottom: 64 },
+  logoRow: { display: 'flex', alignItems: 'center', gap: 16, marginBottom: 60 },
   logoIcon: {
     width: 56, height: 56,
     background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
     borderRadius: 16,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     boxShadow: '0 8px 20px rgba(59,130,246,0.35)',
+    flexShrink: 0,
   },
   logoName: { fontSize: 22, fontWeight: 700, color: '#1e293b' },
   logoSub: { fontSize: 13, color: '#64748b', marginTop: 2 },
-  featuresArea: { paddingLeft: 8 },
   featureIcon: {
     width: 48, height: 48, borderRadius: 14,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
-  featureTitle: { fontSize: 17, fontWeight: 600, color: '#1e293b', marginBottom: 6 },
+  featureTitle: { fontSize: 17, fontWeight: 600, color: '#1e293b', marginBottom: 5 },
   featureDesc: { fontSize: 14, color: '#64748b', lineHeight: 1.6 },
   rightPanel: {
     flex: 1,
     background: 'linear-gradient(135deg, #f0f4ff 0%, #faf5ff 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '40px 40px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '40px',
   },
   formCard: {
     background: 'white',
     borderRadius: 24,
-    padding: '40px 36px',
-    width: '100%',
-    maxWidth: 420,
+    padding: '38px 34px',
+    width: '100%', maxWidth: 420,
     boxShadow: '0 20px 60px rgba(0,0,0,0.08)',
   },
   formLogo: {
-    width: 64, height: 64,
+    width: 62, height: 62,
     background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
     borderRadius: 18,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    margin: '0 auto 20px',
+    margin: '0 auto 18px',
     boxShadow: '0 8px 20px rgba(59,130,246,0.3)',
   },
-  formTitle: { fontSize: 26, fontWeight: 800, color: '#1e293b', lineHeight: 1.3, marginBottom: 8 },
-  formSubtitle: { fontSize: 14, color: '#94a3b8' },
+  formTitle: { fontSize: 24, fontWeight: 800, color: '#1e293b', lineHeight: 1.3, marginBottom: 6 },
+  formSubtitle: { fontSize: 13, color: '#94a3b8' },
   tabContainer: {
     display: 'flex',
     background: '#f1f5f9',
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 24,
-    gap: 4,
+    borderRadius: 12, padding: 4,
+    marginBottom: 22, gap: 4,
   },
   errorBox: {
     background: '#fef2f2', border: '1px solid #fecaca',
-    borderRadius: 10, padding: '10px 14px', marginBottom: 12,
+    borderRadius: 10, padding: '10px 14px', marginBottom: 14,
   },
   successBox: {
     background: '#f0fdf4', border: '1px solid #bbf7d0',
-    borderRadius: 10, padding: '10px 14px', marginBottom: 12,
+    borderRadius: 10, padding: '10px 14px', marginBottom: 14,
   },
-  fieldGroup: { marginBottom: 16 },
   label: {
     display: 'flex', alignItems: 'center',
-    fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 8,
+    fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 7,
   },
   inputWrap: { position: 'relative' },
-  inputIcon: { position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' },
+  inputIcon: {
+    position: 'absolute', left: 14, top: '50%',
+    transform: 'translateY(-50%)', pointerEvents: 'none',
+  },
   eyeBtn: {
-    position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-    background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-    display: 'flex', alignItems: 'center',
+    position: 'absolute', right: 12, top: '50%',
+    transform: 'translateY(-50%)',
+    background: 'none', border: 'none', cursor: 'pointer',
+    padding: 4, display: 'flex', alignItems: 'center',
   },
 };
