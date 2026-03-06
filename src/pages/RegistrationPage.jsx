@@ -34,6 +34,7 @@ export default function RegistrationPage() {
 
   useEffect(() => {
     fetchColleges();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchColleges = async () => {
