@@ -1,82 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Mail, Lock, User, Building, AlertCircle, ArrowLeft, GraduationCap, Users, Shield } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Building, BookOpen, AlertCircle, AtSign } from 'lucide-react';
 
-// Main Registration Hub Component
-function RegistrationHub({ onSelectType }) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">P</span>
-            </div>
-            <span className="text-3xl font-bold text-gray-800">Project Portal</span>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Create Your Account</h1>
-          <p className="text-gray-600">Choose your registration type to get started</p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Student Registration */}
-          <button
-            onClick={() => onSelectType('student')}
-            className="bg-white rounded-xl shadow-lg p-8 hover:shadow-2xl transition-all transform hover:-translate-y-1 text-left"
-          >
-            <div className="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-              <GraduationCap className="w-8 h-8 text-blue-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Student</h3>
-            <p className="text-gray-600 text-sm mb-4">
-              Register as a student to manage your academic projects
-            </p>
-            <div className="text-blue-600 font-medium text-sm">Register Now →</div>
-          </button>
-
-          {/* Faculty Registration */}
-          <button
-            onClick={() => onSelectType('faculty')}
-            className="bg-white rounded-xl shadow-lg p-8 hover:shadow-2xl transition-all transform hover:-translate-y-1 text-left"
-          >
-            <div className="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-              <Users className="w-8 h-8 text-green-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Faculty</h3>
-            <p className="text-gray-600 text-sm mb-4">
-              Register as faculty to guide and mentor students
-            </p>
-            <div className="text-green-600 font-medium text-sm">Register Now →</div>
-          </button>
-
-          {/* College Admin Registration */}
-          <button
-            onClick={() => onSelectType('admin')}
-            className="bg-white rounded-xl shadow-lg p-8 hover:shadow-2xl transition-all transform hover:-translate-y-1 text-left"
-          >
-            <div className="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-              <Shield className="w-8 h-8 text-purple-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">College Admin</h3>
-            <p className="text-gray-600 text-sm mb-4">
-              Register as admin to manage college operations
-            </p>
-            <div className="text-purple-600 font-medium text-sm">Register Now →</div>
-          </button>
-        </div>
-
-        <p className="mt-8 text-center text-sm text-gray-600">
-          Already have an account?{' '}
-          <a href="/auth/login" className="text-blue-600 hover:text-blue-700 font-medium">
-            Sign in
-          </a>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// Student Registration Component
-function StudentRegistration({ onBack }) {
+export default function RegistrationPage() {
+  const [activeTab, setActiveTab] = useState('signin');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -84,481 +10,116 @@ function StudentRegistration({ onBack }) {
   const [otpSent, setOtpSent] = useState(false);
   const [success, setSuccess] = useState(false);
   const [colleges, setColleges] = useState([]);
-  const [loadingColleges, setLoadingColleges] = useState(true);
-  const [formData, setFormData] = useState({
-    studentName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    branch: '',
-    rollNo: '',
-    semester: '',
-    collegeId: ''
-  });
+  const [loadingColleges, setLoadingColleges] = useState(false);
   const [otp, setOtp] = useState('');
 
-  
-const API_BASE_URL = process.env.REACT_APP_API_URL ;
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    username: '',
+    email: '',
+    institution: '',
+    academicRole: 'student',
+    collegeId: '',
+    collegeName: '',
+    department: '',
+    rollNo: '',
+    branch: '',
+    semester: '',
+    password: '',
+    confirmPassword: '',
+  });
 
-  // Fetch approved colleges on component mount
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+
   useEffect(() => {
     fetchColleges();
-     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchColleges = async () => {
+    setLoadingColleges(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/colleges`);
       if (response.ok) {
         const data = await response.json();
         setColleges(data);
-      } else {
-        setError('Failed to load colleges. Please try again later.');
       }
     } catch (err) {
       console.error('Error fetching colleges:', err);
-      setError('Failed to load colleges. Please check your connection.');
     } finally {
       setLoadingColleges(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (error) setError('');
+  };
 
-    if (!formData.studentName || !formData.email || !formData.password || !formData.confirmPassword || !formData.branch || !formData.rollNo || !formData.semester || !formData.collegeId) {
-      setError('Please fill in all required fields');
-      return;
+  const validateForm = () => {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError('Please fill in all required fields'); return false;
     }
-
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
+      setError('Passwords do not match'); return false;
     }
-
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
+      setError('Password must be at least 6 characters'); return false;
     }
+    if (formData.academicRole === 'student' && (!formData.rollNo || !formData.branch || !formData.semester || !formData.collegeId)) {
+      setError('Please fill in all student fields'); return false;
+    }
+    if (formData.academicRole === 'faculty' && (!formData.department || !formData.collegeName)) {
+      setError('Please fill in all faculty fields'); return false;
+    }
+    if (formData.academicRole === 'college_admin' && !formData.collegeName) {
+      setError('Please enter your college name'); return false;
+    }
+    return true;
+  };
 
-    setLoading(true);
-
+  const handleRegister = async () => {
+    if (!validateForm()) return;
+    setLoading(true); setError('');
     try {
-      // Find the selected college name
+      let endpoint = '';
+      let body = {};
       const selectedCollege = colleges.find(c => c.collegeId === parseInt(formData.collegeId));
-      
-      const response = await fetch(`${API_BASE_URL}/auth/registration/student`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          studentName: formData.studentName,
+
+      if (formData.academicRole === 'student') {
+        endpoint = '/auth/registration/student';
+        body = {
+          studentName: `${formData.firstName} ${formData.lastName}`,
           email: formData.email,
           password: formData.password,
           branch: formData.branch,
           rollNo: formData.rollNo,
           semester: formData.semester,
-          collegeName: selectedCollege?.collegeName || ''
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || 'Registration failed');
-      }
-
-      setOtpSent(true);
-    } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (!otp || otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/registration/verify-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          otp: parseInt(otp)
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || 'OTP verification failed');
-      }
-
-      setSuccess(true);
-    } catch (err) {
-      setError(err.message || 'OTP verification failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    if (error) setError('');
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-10">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">Back to Options</span>
-          </button>
-
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <GraduationCap className="w-7 h-7 text-blue-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">Student Registration</h1>
-                <p className="text-gray-500 text-sm">Create your student account</p>
-              </div>
-            </div>
-          </div>
-
-          {success ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Registration Successful!</h2>
-              <p className="text-gray-600 mb-6">Your student account has been created successfully.</p>
-              <button
-                onClick={() => window.location.href = '/auth/login'}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all"
-              >
-                Go to Login
-              </button>
-            </div>
-          ) : otpSent ? (
-            <>
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-red-700">{error}</span>
-                </div>
-              )}
-              <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <div className="text-center mb-6">
-                  <p className="text-gray-600 mb-2">We've sent a 6-digit OTP to</p>
-                  <p className="text-gray-800 font-semibold">{formData.email}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Enter OTP</label>
-                  <input
-                    type="text"
-                    maxLength="6"
-                    placeholder="000000"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                    disabled={loading}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all disabled:opacity-50"
-                >
-                  {loading ? 'Verifying...' : 'Verify OTP'}
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-red-700">{error}</span>
-                </div>
-              )}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      name="studentName"
-                      placeholder="Enter your full name"
-                      value={formData.studentName}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="Enter your college email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select College *
-                  </label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
-                    <select
-                      name="collegeId"
-                      value={formData.collegeId}
-                      onChange={handleInputChange}
-                      disabled={loading || loadingColleges}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-                      required
-                    >
-                      <option value="">
-                        {loadingColleges ? 'Loading colleges...' : 'Select your college'}
-                      </option>
-                      {colleges.map((college) => (
-                        <option key={college.collegeId} value={college.collegeId}>
-                          {college.collegeName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {!loadingColleges && colleges.length === 0 && (
-                    <p className="mt-2 text-sm text-amber-600">No approved colleges available. Please contact support.</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Roll Number *</label>
-                    <input
-                      type="text"
-                      name="rollNo"
-                      placeholder="Your roll number"
-                      value={formData.rollNo}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Branch *</label>
-                    <input
-                      type="text"
-                      name="branch"
-                      placeholder="e.g., CSE"
-                      value={formData.branch}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Semester *</label>
-                  <select
-                    name="semester"
-                    value={formData.semester}
-                    onChange={handleInputChange}
-                    disabled={loading}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select Semester</option>
-                    <option value="I">I</option>
-                    <option value="II">II</option>
-                    <option value="III">III</option>
-                    <option value="IV">IV</option>
-                    <option value="V">V</option>
-                    <option value="VI">VI</option>
-                    <option value="VII">VII</option>
-                    <option value="VIII">VIII</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      name="password"
-                      placeholder="Create a password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      name="confirmPassword"
-                      placeholder="Re-enter your password"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading || loadingColleges || colleges.length === 0}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all disabled:opacity-50"
-                >
-                  {loading ? 'Sending OTP...' : 'Send OTP'}
-                </button>
-              </form>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Faculty Registration Component
-
-
-function FacultyRegistration({ onBack }) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [colleges, setColleges] = useState([]);
-  const [formData, setFormData] = useState({
-    facultyName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    department: '',
-    collegeName: ''
-  });
-  const [otp, setOtp] = useState('');
-
-  const API_BASE_URL =  process.env.REACT_APP_API_URL;
-
-  useEffect(() => {
-    fetchColleges();
-     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchColleges = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/colleges`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch colleges');
-      }
-      const data = await response.json();
-      setColleges(data);
-    } catch (err) {
-      console.error('Error fetching colleges:', err);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (!formData.facultyName || !formData.email || !formData.password || 
-        !formData.confirmPassword || !formData.department || !formData.collegeName) {
-      setError('Please fill in all required fields');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/registration/faculty`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          facultyName: formData.facultyName,
+          collegeName: selectedCollege?.collegeName || '',
+        };
+      } else if (formData.academicRole === 'faculty') {
+        endpoint = '/auth/registration/faculty';
+        body = {
+          facultyName: `${formData.firstName} ${formData.lastName}`,
           email: formData.email,
           password: formData.password,
           department: formData.department,
-          collegeName: formData.collegeName
-        })
+          collegeName: formData.collegeName,
+        };
+      } else if (formData.academicRole === 'college_admin') {
+        endpoint = '/auth/registration/collegeAdmin';
+        body = {
+          email: formData.email,
+          password: formData.password,
+          collegeName: formData.collegeName,
+        };
+      }
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -566,7 +127,11 @@ function FacultyRegistration({ onBack }) {
         throw new Error(errorData || 'Registration failed');
       }
 
-      setOtpSent(true);
+      if (formData.academicRole === 'college_admin') {
+        setSuccess(true);
+      } else {
+        setOtpSent(true);
+      }
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -574,515 +139,414 @@ function FacultyRegistration({ onBack }) {
     }
   };
 
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (!otp || otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
-      return;
-    }
-
-    setLoading(true);
-
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length !== 6) { setError('Please enter a valid 6-digit OTP'); return; }
+    setLoading(true); setError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/registration/verify-otp-faculty`, {
+      const otpEndpoint = formData.academicRole === 'faculty'
+        ? '/auth/registration/verify-otp-faculty'
+        : '/auth/registration/verify-otp';
+      const response = await fetch(`${API_BASE_URL}${otpEndpoint}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          otp: parseInt(otp)
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, otp: parseInt(otp) }),
       });
-
       if (!response.ok) {
         const errorData = await response.text();
         throw new Error(errorData || 'OTP verification failed');
       }
-
       setSuccess(true);
     } catch (err) {
-      setError(err.message || 'OTP verification failed. Please try again.');
+      setError(err.message || 'OTP verification failed.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    if (error) setError('');
+  const roleColor = {
+    student: '#3b82f6',
+    faculty: '#10b981',
+    college_admin: '#8b5cf6',
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-10">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">Back to Options</span>
-          </button>
+  const currentColor = roleColor[formData.academicRole] || '#3b82f6';
 
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <Users className="w-7 h-7 text-green-600" />
+  return (
+    <div style={styles.page}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Outfit', sans-serif; }
+        .tab-btn { flex: 1; padding: 12px 16px; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500; border-radius: 10px; transition: all 0.2s; }
+        .tab-btn.active { background: white; color: #1e293b; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-weight: 600; }
+        .tab-btn.inactive { background: transparent; color: #94a3b8; }
+        .tab-btn.inactive:hover { color: #64748b; }
+        .input-field { width: 100%; padding: 13px 14px 13px 42px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 14px; color: #1e293b; background: #f8fafc; outline: none; transition: all 0.2s; }
+        .input-field.no-icon { padding-left: 14px; }
+        .input-field:focus { border-color: var(--focus-color, #3b82f6); background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .input-field::placeholder { color: #94a3b8; }
+        .input-field:disabled { opacity: 0.6; cursor: not-allowed; }
+        .submit-btn { width: 100%; padding: 14px; color: white; border: none; border-radius: 12px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .submit-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
+        .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .otp-input { width: 100%; padding: 16px; text-align: center; font-size: 28px; font-weight: 700; letter-spacing: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-family: 'Outfit', sans-serif; color: #1e293b; background: #f8fafc; outline: none; transition: all 0.2s; }
+        .otp-input:focus { border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .role-option { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: all 0.2s; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500; color: #374151; background: white; }
+        .role-option:hover { border-color: #94a3b8; }
+        .role-option.selected-student { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
+        .role-option.selected-faculty { border-color: #10b981; background: #f0fdf4; color: #065f46; }
+        .role-option.selected-college_admin { border-color: #8b5cf6; background: #faf5ff; color: #4c1d95; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { animation: spin 0.8s linear infinite; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-up { animation: fadeUp 0.4s ease forwards; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+      `}</style>
+
+      {/* Gradient background */}
+      <div style={styles.bgGradient} />
+      <div style={styles.blob1} />
+      <div style={styles.blob2} />
+
+      <div style={styles.card} className="fade-up">
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ ...styles.logoIcon, background: `linear-gradient(135deg, ${currentColor}, ${currentColor}cc)` }}>
+            <BookOpen size={28} color="white" />
+          </div>
+          <h1 style={styles.title}>Welcome to<br />ShareXConnect</h1>
+          <p style={styles.subtitle}>Your Academic Excellence Platform</p>
+        </div>
+
+        {/* Tabs */}
+        <div style={styles.tabContainer}>
+          <button
+            className={`tab-btn ${activeTab === 'signin' ? 'active' : 'inactive'}`}
+            onClick={() => { setActiveTab('signin'); window.location.href = '/auth/login'; }}
+          >
+            Sign In
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'create' ? 'active' : 'inactive'}`}
+            onClick={() => setActiveTab('create')}
+          >
+            Create Account
+          </button>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div style={styles.errorBox}>
+            <AlertCircle size={15} color="#dc2626" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: '#dc2626' }}>{error}</span>
+          </div>
+        )}
+
+        {/* Success State */}
+        {success ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ width: 64, height: 64, background: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Account Created!</h2>
+            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24 }}>Your account has been created successfully.</p>
+            <button
+              onClick={() => window.location.href = '/auth/login'}
+              className="submit-btn"
+              style={{ background: `linear-gradient(135deg, ${currentColor}, ${currentColor}cc)`, boxShadow: `0 4px 15px ${currentColor}40` }}
+            >
+              Go to Login
+            </button>
+          </div>
+        ) : otpSent ? (
+          /* OTP Verification */
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <p style={{ fontSize: 14, color: '#64748b' }}>We've sent a 6-digit OTP to</p>
+              <p style={{ fontSize: 15, fontWeight: 600, color: '#1e293b', marginTop: 4 }}>{formData.email}</p>
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={styles.label}>Enter OTP</label>
+              <input
+                type="text"
+                maxLength="6"
+                placeholder="000000"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                disabled={loading}
+                className="otp-input"
+              />
+            </div>
+            <button
+              onClick={handleVerifyOtp}
+              disabled={loading}
+              className="submit-btn"
+              style={{ background: `linear-gradient(135deg, ${currentColor}, ${currentColor}cc)`, boxShadow: `0 4px 15px ${currentColor}40` }}
+            >
+              {loading ? <><svg className="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeOpacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg> Verifying...</> : 'Verify OTP'}
+            </button>
+          </div>
+        ) : (
+          /* Registration Form */
+          <div style={{ overflowY: 'auto', maxHeight: '55vh', paddingRight: 4 }}>
+            {/* Name Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={styles.label}><User size={14} color={currentColor} style={{ marginRight: 5 }} />First Name</label>
+                <div style={styles.inputWrap}>
+                  <User size={15} color="#94a3b8" style={styles.inputIcon} />
+                  <input type="text" name="firstName" placeholder="John" value={formData.firstName} onChange={handleInputChange} disabled={loading} className="input-field" />
+                </div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Faculty Registration</h1>
-                <p className="text-gray-500 text-sm">Create your faculty account</p>
+                <label style={styles.label}><User size={14} color={currentColor} style={{ marginRight: 5 }} />Last Name</label>
+                <div style={styles.inputWrap}>
+                  <User size={15} color="#94a3b8" style={styles.inputIcon} />
+                  <input type="text" name="lastName" placeholder="Smith" value={formData.lastName} onChange={handleInputChange} disabled={loading} className="input-field" />
+                </div>
               </div>
             </div>
-          </div>
 
-          {success ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                </svg>
+            {/* Username */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={styles.label}><AtSign size={14} color={currentColor} style={{ marginRight: 5 }} />Username</label>
+              <div style={styles.inputWrap}>
+                <AtSign size={15} color="#94a3b8" style={styles.inputIcon} />
+                <input type="text" name="username" placeholder="johnsmith" value={formData.username} onChange={handleInputChange} disabled={loading} className="input-field" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Registration Successful!</h2>
-              <p className="text-gray-600 mb-6">Your faculty account has been created successfully.</p>
-              <button
-                onClick={() => window.location.href = '/auth/login'}
-                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-all"
-              >
-                Go to Login
-              </button>
             </div>
-          ) : otpSent ? (
-            <>
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-red-700">{error}</span>
-                </div>
-              )}
-              <div className="space-y-4">
-                <div className="text-center mb-6">
-                  <p className="text-gray-600 mb-2">We've sent a 6-digit OTP to</p>
-                  <p className="text-gray-800 font-semibold">{formData.email}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Enter OTP</label>
-                  <input
-                    type="text"
-                    maxLength="6"
-                    placeholder="000000"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+
+            {/* Email */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={styles.label}><Mail size={14} color={currentColor} style={{ marginRight: 5 }} />Email Address</label>
+              <div style={styles.inputWrap}>
+                <Mail size={15} color="#94a3b8" style={styles.inputIcon} />
+                <input type="email" name="email" placeholder="john.smith@university.edu" value={formData.email} onChange={handleInputChange} disabled={loading} className="input-field" />
+              </div>
+            </div>
+
+            {/* Academic Role */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={styles.label}>
+                <BookOpen size={14} color={currentColor} style={{ marginRight: 5 }} />
+                Academic Role
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                {[
+                  { value: 'student', label: 'Student', icon: '🎓' },
+                  { value: 'faculty', label: 'Faculty', icon: '👨‍🏫' },
+                  { value: 'college_admin', label: 'Admin', icon: '🏛️' },
+                ].map(role => (
+                  <button
+                    key={role.value}
+                    type="button"
+                    onClick={() => { setFormData(p => ({ ...p, academicRole: role.value })); setError(''); }}
                     disabled={loading}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-center text-2xl tracking-widest"
-                  />
+                    className={`role-option ${formData.academicRole === role.value ? `selected-${role.value}` : ''}`}
+                    style={{ justifyContent: 'center', flexDirection: 'column', gap: 4 }}
+                  >
+                    <span style={{ fontSize: 20 }}>{role.icon}</span>
+                    <span style={{ fontSize: 12 }}>{role.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* College Selection for Student */}
+            {formData.academicRole === 'student' && (
+              <>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={styles.label}><Building size={14} color={currentColor} style={{ marginRight: 5 }} />Select Your College</label>
+                  <div style={styles.inputWrap}>
+                    <Building size={15} color="#94a3b8" style={styles.inputIcon} />
+                    <select name="collegeId" value={formData.collegeId} onChange={handleInputChange} disabled={loading || loadingColleges} className="input-field" style={{ appearance: 'none', cursor: 'pointer' }}>
+                      <option value="">{loadingColleges ? 'Loading...' : 'Select your college'}</option>
+                      {colleges.map(c => <option key={c.collegeId} value={c.collegeId}>{c.collegeName}</option>)}
+                    </select>
+                  </div>
+                  <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Your college must be registered by a College Admin before you can sign up</p>
                 </div>
-                <button
-                  onClick={handleVerifyOtp}
-                  disabled={loading}
-                  className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-all disabled:opacity-50"
-                >
-                  {loading ? 'Verifying...' : 'Verify OTP'}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                  <div>
+                    <label style={styles.label}>Roll Number</label>
+                    <input type="text" name="rollNo" placeholder="Roll no." value={formData.rollNo} onChange={handleInputChange} disabled={loading} className="input-field no-icon" />
+                  </div>
+                  <div>
+                    <label style={styles.label}>Branch</label>
+                    <input type="text" name="branch" placeholder="e.g. CSE" value={formData.branch} onChange={handleInputChange} disabled={loading} className="input-field no-icon" />
+                  </div>
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={styles.label}>Semester</label>
+                  <select name="semester" value={formData.semester} onChange={handleInputChange} disabled={loading} className="input-field no-icon" style={{ appearance: 'none', cursor: 'pointer' }}>
+                    <option value="">Select Semester</option>
+                    {['I','II','III','IV','V','VI','VII','VIII'].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* Faculty Fields */}
+            {formData.academicRole === 'faculty' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                <div>
+                  <label style={styles.label}><Building size={14} color={currentColor} style={{ marginRight: 5 }} />College</label>
+                  <div style={styles.inputWrap}>
+                    <Building size={15} color="#94a3b8" style={styles.inputIcon} />
+                    <select name="collegeName" value={formData.collegeName} onChange={handleInputChange} disabled={loading} className="input-field" style={{ appearance: 'none' }}>
+                      <option value="">Select college</option>
+                      {colleges.map(c => <option key={c.collegeId} value={c.collegeName}>{c.collegeName}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style={styles.label}>Department</label>
+                  <input type="text" name="department" placeholder="e.g. Computer Science" value={formData.department} onChange={handleInputChange} disabled={loading} className="input-field no-icon" />
+                </div>
+              </div>
+            )}
+
+            {/* Admin Fields */}
+            {formData.academicRole === 'college_admin' && (
+              <div style={{ marginBottom: 14 }}>
+                <label style={styles.label}><Building size={14} color={currentColor} style={{ marginRight: 5 }} />College Name</label>
+                <div style={styles.inputWrap}>
+                  <Building size={15} color="#94a3b8" style={styles.inputIcon} />
+                  <input type="text" name="collegeName" placeholder="Enter college name" value={formData.collegeName} onChange={handleInputChange} disabled={loading} className="input-field" />
+                </div>
+                <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 8, padding: '10px 12px', marginTop: 10 }}>
+                  <p style={{ fontSize: 12, color: '#7c3aed' }}>As a college admin, you'll manage faculty, students, and college-wide settings.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Password */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={styles.label}><Lock size={14} color={currentColor} style={{ marginRight: 5 }} />Password</label>
+              <div style={styles.inputWrap}>
+                <Lock size={15} color="#94a3b8" style={styles.inputIcon} />
+                <input type={showPassword ? 'text' : 'password'} name="password" placeholder="Create a secure password" value={formData.password} onChange={handleInputChange} disabled={loading} className="input-field" style={{ paddingRight: 42 }} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} style={styles.eyeBtn} disabled={loading}>
+                  {showPassword ? <EyeOff size={15} color="#94a3b8" /> : <Eye size={15} color="#94a3b8" />}
                 </button>
               </div>
-            </>
-          ) : (
-            <>
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-red-700">{error}</span>
-                </div>
-              )}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      name="facultyName"
-                      placeholder="Enter your full name"
-                      value={formData.facultyName}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
-                    />
-                  </div>
-                </div>
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="Enter your college email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">College Name *</label>
-                    <div className="relative">
-          
-                      <select
-                        name="collegeName"
-                        value={formData.collegeName}
-                        onChange={handleInputChange}
-                        disabled={loading}
-                        className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none bg-white"
-                        required
-                      >
-                        <option value="">Select your college</option>
-                        {colleges.map((college) => (
-                          <option key={college.collegeId} value={college.collegeName}>
-                            {college.collegeName}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Department *</label>
-                    <input
-                      type="text"
-                      name="department"
-                      placeholder="e.g., Computer Science"
-                      value={formData.department}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      name="password"
-                      placeholder="Create a password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      name="confirmPassword"
-                      placeholder="Re-enter your password"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-all disabled:opacity-50"
-                >
-                  {loading ? 'Sending OTP...' : 'Send OTP'}
+            {/* Confirm Password */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={styles.label}><Lock size={14} color={currentColor} style={{ marginRight: 5 }} />Confirm Password</label>
+              <div style={styles.inputWrap}>
+                <Lock size={15} color="#94a3b8" style={styles.inputIcon} />
+                <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" placeholder="Confirm your password" value={formData.confirmPassword} onChange={handleInputChange} disabled={loading} className="input-field" style={{ paddingRight: 42 }} />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeBtn} disabled={loading}>
+                  {showConfirmPassword ? <EyeOff size={15} color="#94a3b8" /> : <Eye size={15} color="#94a3b8" />}
                 </button>
               </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+            </div>
 
+            <button
+              onClick={handleRegister}
+              disabled={loading || (formData.academicRole === 'student' && (loadingColleges || colleges.length === 0))}
+              className="submit-btn"
+              style={{ background: `linear-gradient(135deg, ${currentColor}, ${currentColor}cc)`, boxShadow: `0 4px 15px ${currentColor}40` }}
+            >
+              {loading
+                ? <><svg className="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeOpacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg> Creating Account...</>
+                : <>👤 Create ShareXConnect Account</>
+              }
+            </button>
 
-// College Admin Registration Component
-function CollegeAdminRegistration({ onBack }) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    collegeName: ''
-  });
-
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (!formData.email || !formData.password || !formData.confirmPassword || !formData.collegeName) {
-      setError('Please fill in all required fields');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/registration/collegeAdmin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          collegeName: formData.collegeName
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || 'Registration failed');
-      }
-
-      setSuccess(true);
-    } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    if (error) setError('');
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-violet-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-10">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">Back to Options</span>
-          </button>
-
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Shield className="w-7 h-7 text-purple-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">College Admin Registration</h1>
-                <p className="text-gray-500 text-sm">Create your admin account</p>
-              </div>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <div style={{ height: 1, background: '#e2e8f0', marginBottom: 12 }} />
+              <p style={{ fontSize: 14, color: '#64748b' }}>
+                Already have an account?{' '}
+                <button
+                  style={{ background: 'none', border: 'none', color: currentColor, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
+                  onClick={() => window.location.href = '/auth/login'}
+                >
+                  Sign in here
+                </button>
+              </p>
             </div>
           </div>
-
-          {success ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Registration Successful!</h2>
-              <p className="text-gray-600 mb-6">Your college admin account has been created successfully.</p>
-              <button
-                onClick={() => window.location.href = '/auth/login'}
-                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-all"
-              >
-                Go to Login
-              </button>
-            </div>
-          ) : (
-            <>
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-red-700">{error}</span>
-                </div>
-              )}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="Enter your email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">College Name *</label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      name="collegeName"
-                      placeholder="Enter college name"
-                      value={formData.collegeName}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      name="password"
-                      placeholder="Create a password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      name="confirmPassword"
-                      placeholder="Re-enter your password"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-sm text-purple-800">
-                    <strong>Note:</strong> As a college admin, you'll have access to manage faculty, students, and college-wide settings.
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-all disabled:opacity-50"
-                >
-                  {loading ? 'Creating Account...' : 'Create Admin Account'}
-                </button>
-              </form>
-            </>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Main App Component
-export default function App() {
-  const [registrationType, setRegistrationType] = useState(null);
-
-  if (registrationType === 'student') {
-    return <StudentRegistration onBack={() => setRegistrationType(null)} />;
-  }
-
-  if (registrationType === 'faculty') {
-    return <FacultyRegistration onBack={() => setRegistrationType(null)} />;
-  }
-
-  if (registrationType === 'admin') {
-    return <CollegeAdminRegistration onBack={() => setRegistrationType(null)} />;
-  }
-
-  return <RegistrationHub onSelectType={setRegistrationType} />;
-}
+const styles = {
+  page: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: "'Outfit', sans-serif",
+    position: 'relative',
+    padding: '20px',
+    background: 'linear-gradient(135deg, #f0f4ff 0%, #faf5ff 50%, #f0fdf4 100%)',
+  },
+  bgGradient: {
+    position: 'fixed', inset: 0,
+    background: 'linear-gradient(135deg, #dbeafe 0%, #ede9fe 50%, #dcfce7 100%)',
+    zIndex: 0,
+  },
+  blob1: {
+    position: 'fixed', width: 500, height: 500,
+    background: 'radial-gradient(circle, rgba(147,197,253,0.4) 0%, transparent 70%)',
+    top: -150, left: -100, borderRadius: '50%', zIndex: 0,
+  },
+  blob2: {
+    position: 'fixed', width: 400, height: 400,
+    background: 'radial-gradient(circle, rgba(196,181,253,0.35) 0%, transparent 70%)',
+    bottom: -100, right: -50, borderRadius: '50%', zIndex: 0,
+  },
+  card: {
+    position: 'relative', zIndex: 1,
+    background: 'white',
+    borderRadius: 24,
+    padding: '36px 32px',
+    width: '100%',
+    maxWidth: 480,
+    boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
+  },
+  logoIcon: {
+    width: 60, height: 60,
+    borderRadius: 16,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    margin: '0 auto 16px',
+    boxShadow: '0 8px 20px rgba(59,130,246,0.3)',
+    transition: 'background 0.3s',
+  },
+  title: { fontSize: 24, fontWeight: 800, color: '#1e293b', lineHeight: 1.3, marginBottom: 6 },
+  subtitle: { fontSize: 13, color: '#94a3b8' },
+  tabContainer: {
+    display: 'flex',
+    background: '#f1f5f9',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+    gap: 4,
+  },
+  errorBox: {
+    background: '#fef2f2', border: '1px solid #fecaca',
+    borderRadius: 8, padding: '10px 12px',
+    display: 'flex', alignItems: 'center', gap: 8,
+    marginBottom: 14,
+  },
+  label: {
+    display: 'flex', alignItems: 'center',
+    fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6,
+  },
+  inputWrap: { position: 'relative' },
+  inputIcon: { position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' },
+  eyeBtn: {
+    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+    background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+    display: 'flex', alignItems: 'center',
+  },
+};
